@@ -75,15 +75,15 @@ s = Redis::Semaphore.new(:another_name, r)
 Installation
 ------------
 
-  $ gem install redis-semaphore
+    $ gem install redis-semaphore
 
 Testing
 -------
 
-  $ bundle install
-  $ rake
+    $ bundle install
+    $ rake
 
 Author
 ------
 
-David Verhasselt :: david@crowdway.com
+[David Verhasselt](http://davidverhasselt.com DavidVerhasselt.com) - david@crowdway.com
