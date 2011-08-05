@@ -5,7 +5,7 @@ Implements a mutex and semaphore using Redis and the neat BLPOP command.
 
 The mutex and semaphore is blocking, not polling, and has a fair queue serving processes on a first-come, first-serve basis.
 
-For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming) "Semaphore (programming)").
+For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming)).
 
 Usage
 -----
@@ -86,4 +86,4 @@ Testing
 Author
 ------
 
-[David Verhasselt](http://davidverhasselt.com DavidVerhasselt.com) - david@crowdway.com
+[David Verhasselt](http://davidverhasselt.com) - david@crowdway.com
