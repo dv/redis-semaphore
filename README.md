@@ -19,7 +19,8 @@ s.lock do
   # No matter how many processes are running this program,
   # there will be only one running this code block at a time.
   do_something_speshiul()
-end```
+end
+```
 
 While our application is inside the code block given to ```rslock```, other calls to use the mutex with the same name will block until our code block is finished. Once our mutex unlocks, the next process will unblock and be able to execute the code block. The blocking processes get unblocked in order of arrival, creating a fair queue.
 
@@ -31,7 +32,8 @@ s.lock do
   # Up to five processes at a time will be able to get inside this code
   # block simultaneously.
   do_something_less_speshiul()
-end```
+end
+```
 
 You don't need to use code blocks, you can also use linear code:
 
@@ -50,20 +52,23 @@ if s.lock(5) # This will only block for at most 5 seconds if the mutex stays loc
   s.unlock
 else
   puts "Aborted."
-end```
+end
+```
 
 You can check if the mutex or semaphore already exists, or how many resources are left in the semaphore:
 
 ```ruby
 puts "Someone already initialized this mutex or semaphore!" if s.exists?
-puts "There are #{s.available} resources available right now."```
+puts "There are #{s.available} resources available right now."
+```
 
 In the constructor you can pass in any arguments that you would pass to a regular Redis constructor. You can even pass in your custom Redis client:
 
 ```ruby
 r = Redis.new(:connection => "localhost", :db => 222)
 s = Redis::Semaphore.new(:another_name, r)
-#...```
+#...
+```
 
 
 
