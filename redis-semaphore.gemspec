@@ -6,7 +6,10 @@ Gem::Specification.new do |s|
   s.email       = 'david@crowdway.com'
   s.homepage    = 'http://github.com/dv/redis-semaphore'
 
-  s.files       = Dir.glob("lib/**/*")
+  files         = %w(README.md Rakefile LICENSE)
+  files        += Dir.glob("lib/**/*")
+  files        += Dir.glob("spec/**/*")
+  s.files       = files
 
   s.add_dependency  'redis'
 
