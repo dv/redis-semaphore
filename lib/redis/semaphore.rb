@@ -12,6 +12,7 @@ class Redis
     def initialize(*args)
       raise "Need at least two arguments" if args.size < 2
       
+      @locked = false
       @name = args.shift.to_s
       @redis = args.pop
       @redis = Redis.new(@redis) unless @redis.kind_of? Redis
