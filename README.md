@@ -22,7 +22,7 @@ s.lock do
 end
 ```
 
-While our application is inside the code block given to ```rslock```, other calls to use the mutex with the same name will block until our code block is finished. Once our mutex unlocks, the next process will unblock and be able to execute the code block. The blocking processes get unblocked in order of arrival, creating a fair queue.
+While our application is inside the code block given to ```s.lock```, other calls to use the mutex with the same name will block until our code block is finished. Once our mutex unlocks, the next process will unblock and be able to execute the code block. The blocking processes get unblocked in order of arrival, creating a fair queue.
 
 You can also allow a set number of processes inside the semaphore-protected block:
 
