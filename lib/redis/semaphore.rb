@@ -40,8 +40,11 @@ class Redis
       
       @locked = true
       if block_given?
-        yield
-        unlock
+        begin
+          yield
+        ensure
+          unlock
+        end
       end
       
       true

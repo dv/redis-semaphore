@@ -49,5 +49,22 @@ describe "redis" do
     end
     code_executed.should == true    
   end
-  
+
+  it "should pass an exception right through" do
+    lambda do
+      @semaphore.lock do
+        raise Exception, "redis semaphore exception"
+      end
+    end.should raise_error(Exception, "redis semaphore exception")
+  end
+
+  it "should not leave the semaphore locked after raising an exception" do
+    lambda do 
+      @semaphore.lock do
+        raise Exception
+      end
+    end.should raise_error
+    
+    @semaphore.locked?.should == false
+  end
 end
