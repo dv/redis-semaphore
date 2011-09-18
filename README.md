@@ -70,6 +70,17 @@ s = Redis::Semaphore.new(:another_name, r)
 #...
 ```
 
+If an exception happens during a lock, the lock will automatically be released:
+
+```ruby
+begin
+  s.lock do
+    raise Exception
+  end
+rescue
+  s.locked? # false
+end
+```
 
 
 Installation
