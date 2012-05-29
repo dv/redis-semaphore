@@ -15,7 +15,9 @@ class Redis
       @locked = false
       @name = args.shift.to_s
       @redis = args.pop
-      @redis = Redis.new(@redis) unless @redis.kind_of? Redis
+      if !(@redis.is_a?(Redis) || (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace)))
+        @redis = Redis.new(@redis)
+      end
       @resources = args.pop || 1
       
     end
