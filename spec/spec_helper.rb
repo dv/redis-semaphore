@@ -1,10 +1,7 @@
 require 'rubygems'
-require 'bundler'
-Bundler.setup(:default, :test)
-Bundler.require(:default, :test)
+require 'bundler/setup'
+Bundler.require(:development)
 
-require 'rspec'
-require 'redis'
 require 'logger'
 
 $TESTING=true
