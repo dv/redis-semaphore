@@ -103,4 +103,19 @@ describe "redis" do
 
     @semaphore.locked?.should == false
   end
+
+  it "should restore resources of stale clients" do
+    hyper_aggressive_sem = Redis::Semaphore.new(:hyper_aggressive_sem, 1, @redis)
+    hyper_aggressive_sem.stale_client_timeout = 1
+    hyper_aggressive_sem.lock(1).should == true
+    hyper_aggressive_sem.lock(1).should == false #because it is locked as expected
+    hyper_aggressive_sem.lock(1).should == true  #becuase it is assumed that the first
+                                                 #lock is no longer valid since the
+                                                 #client could've been killed
+  end
+
+  it "should be backward compatible with previous exist values" do
+    @redis.set("SEMAPHORE::my_semaphore::EXISTS",1)
+    @semaphore.lock
+  end
 end

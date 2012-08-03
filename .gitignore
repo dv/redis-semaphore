@@ -1,3 +1,5 @@
 .project
 *.gem
 .rspec
+.bundle
+.rbenv-version
