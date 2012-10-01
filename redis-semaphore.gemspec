@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'redis-semaphore'
-  s.version     = '0.1.3'
+  s.version     = '0.1.4'
   s.summary     = 'Implements a distributed semaphore or mutex using Redis.'
   s.authors     = ['David Verhasselt']
   s.email       = 'david@crowdway.com'
