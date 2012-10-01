@@ -125,6 +125,6 @@ Contributors
 
 Thanks to these awesome fellas for their contributions:
 
-- (Rimas Silkaitis)[https://github.com/neovintage]
-- (Tim Galeckas)[https://github.com/timgaleckas]
-- (Ruurd Pels)[https://github.com/ruurd]
+- [Rimas Silkaitis](https://github.com/neovintage)
+- [Tim Galeckas](https://github.com/timgaleckas)
+- [Ruurd Pels](https://github.com/ruurd)
