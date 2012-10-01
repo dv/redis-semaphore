@@ -68,11 +68,11 @@ class Redis
 
   private
     def list_name
-      @redis.is_a?(Redis::Namespace) ? "#{@name}:LIST" : "SEMAPHORE:#{@name}:LIST"
+      (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace)) ? "#{@name}:LIST" : "SEMAPHORE:#{@name}:LIST"
     end
 
     def exists_name
-      @redis.is_a?(Redis::Namespace) ? "#{@name}:EXISTS" : "SEMAPHORE:#{@name}:EXISTS"
+      (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace)) ? "#{@name}:EXISTS" : "SEMAPHORE:#{@name}:EXISTS"
     end
 
     def exists_or_create!
