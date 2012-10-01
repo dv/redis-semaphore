@@ -94,6 +94,24 @@ Testing
     $ bundle install
     $ rake
 
+Changelog
+---------
+
+###0.1.4 October 1, 2012
+- Fixed empty namespaces (thanks ruurd!).
+
+###0.1.3 July 9, 2012
+- Tokens are now identifiable (thanks timgaleckas!).
+
+###0.1.2 June 1, 2012
+- Add redis-namespace support (thanks neovintage!).
+
+### 0.1.1 September 17, 2011
+- When an exception is raised during locked period, ensure it unlocks.
+
+### 0.1.0 August 4, 2011
+- Initial release.
+
 Author
 ------
 
