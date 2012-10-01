@@ -97,6 +97,9 @@ Testing
 Changelog
 ---------
 
+###0.1.5 October 1, 2012
+- Add detection of Redis::Namespace definition to avoid potential bug (thanks ruud!).
+
 ###0.1.4 October 1, 2012
 - Fixed empty namespaces (thanks ruurd!).
 
