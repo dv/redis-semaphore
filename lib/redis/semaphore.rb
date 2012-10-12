@@ -16,7 +16,6 @@ class Redis
     # RedisSemaphore.new(:my_semaphore, :connection => "", :port => "")
     # RedisSemaphore.new(:my_semaphore, :path => "bla")
     def initialize(name, opts={})
-      @held_locks = []
       @name = name
       @resources = opts.delete(:resources)
       @resources ||= 1
@@ -47,35 +46,35 @@ class Redis
       return false if token.nil?
 
       token = token[1].to_i
-      @held_locks << token
-
       @redis.hset grabbed_name, token, DateTime.now.strftime('%s')
-
-      if block_given?
-        begin
-          yield token
-        ensure
-          unlock
-        end
-      end
-
-      true
+      token
     end
 
-    def unlock
-      if token = @held_locks.pop
-
-        @redis.multi do
-          @redis.lpush(available_name, token)
-          @redis.hdel grabbed_name, token
-        end
+    def with_locked_resource(timeout = 0)
+      token = lock(timeout)
+      return false unless token
+      begin
+        yield token
+      ensure
+        unlock(token)
       end
     end
 
-    def locked?
-      !@held_locks.empty?
+    def unlock(token=0)
+      raise InconsistentStateError.new('Invalid Unlock') unless token && locked?(token)
+      @redis.multi do
+        @redis.lpush available_name, token
+        @redis.hdel  grabbed_name,   token
+      end
     end
 
+    def locked?(token=nil)
+      if token
+        @redis.hexists grabbed_name, token
+      else
+        @redis.hlen( grabbed_name ) > 0
+      end
+    end
 
   private
     def available_name
@@ -113,6 +112,7 @@ class Redis
         end
       else
         @redis.multi do
+          @redis.del(grabbed_name)
           @redis.del(available_name)
           @resources.times do |index|
             @redis.rpush(available_name, index)
