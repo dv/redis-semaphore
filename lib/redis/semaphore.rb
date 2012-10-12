@@ -23,6 +23,11 @@ class Redis
       @stale_client_timeout = opts.delete(:stale_client_timeout)
       @redis = opts.delete(:redis)
       @redis ||= Redis.new(opts)
+      @namespace = opts.delete(:namespace)
+      @namespace ||= @redis.namespace if @redis.respond_to? :namespace #this fixes the Redis::Namespace issue
+      @namespace ||= 'SEMAPHORE' #fall back to original name
+      @namespace_delim = opts.delete(:namespace_delim) #this allows Redis::Namespace users to pass in ':' as the delimiter
+      @namespace_delim ||= '::'
     end
 
     def available
@@ -74,15 +79,19 @@ class Redis
 
   private
     def available_name
-      (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace)) ? "#{@name}:AVAILABLE" : "SEMAPHORE:#{@name}:AVAILABLE"
+      @available_name ||= namespaced_key_name('AVAILABLE')
     end
 
     def exists_name
-      (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace)) ? "#{@name}:EXISTS" : "SEMAPHORE:#{@name}:EXISTS"
+      @exists_name ||= namespaced_key_name('EXISTS')
     end
 
     def grabbed_name
-      "SEMAPHORE::#{@name}::GRABBED"
+      @grabbed_name ||= namespaced_key_name('GRABBED')
+    end
+
+    def namespaced_key_name(key_name)
+      [@namespace,@name,key_name].join(@namespace_delim)
     end
 
     def exists_or_create!
