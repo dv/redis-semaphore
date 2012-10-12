@@ -104,6 +104,17 @@ describe "redis" do
     @semaphore.locked?.should == false
   end
 
+  it "should blow up if the data in redis is off" do
+    @semaphore.lock(1).should == true
+    @semaphore.unlock
+    @semaphore = Redis::Semaphore.new(:my_semaphore, :resources=>9, :redis => @redis)
+    lambda do
+      @semaphore.lock(1)
+    end.should raise_error(Redis::InconsistentStateError)
+    @semaphore = Redis::Semaphore.new(:my_semaphore, :resources=>1, :redis => @redis)
+    @semaphore.lock(1).should == true
+  end
+
   it "should restore resources of stale clients" do
     hyper_aggressive_sem = Redis::Semaphore.new(:hyper_aggressive_sem, :resources => 1, :redis => @redis, :stale_client_timeout => 1)
     hyper_aggressive_sem.lock(1).should == true

@@ -1,6 +1,9 @@
 require 'redis'
 
 class Redis
+  class InconsistentStateError < StandardError
+  end
+
   class Semaphore
 
     #stale_client_timeout is the threshold of time before we assume
@@ -80,6 +83,8 @@ class Redis
     end
 
     def exists_or_create!
+      old = @redis.get(exists_name)
+      raise InconsistentStateError.new('Code does not match data') if old && old.to_i != @resources
       if @redis.getset(exists_name, @resources)
         if @stale_client_timeout
           #fix missing clients
