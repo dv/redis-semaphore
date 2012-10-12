@@ -16,7 +16,7 @@ class Redis
     # RedisSemaphore.new(:my_semaphore, :connection => "", :port => "")
     # RedisSemaphore.new(:my_semaphore, :path => "bla")
     def initialize(name, opts={})
-      @locked = false
+      @held_locks = []
       @name = name
       @resources = opts.delete(:resources)
       @resources ||= 1
@@ -38,14 +38,17 @@ class Redis
     def lock(timeout = 0)
       exists_or_create!
 
-      resource_index = @redis.blpop(available_name, timeout)
-      return false if resource_index.nil?
-      @locked = resource_index[1].to_i
-      @redis.hset grabbed_name, @locked, DateTime.now.strftime('%s')
+      token = @redis.blpop(available_name, timeout)
+      return false if token.nil?
+
+      token = token[1].to_i
+      @held_locks << token
+
+      @redis.hset grabbed_name, token, DateTime.now.strftime('%s')
 
       if block_given?
         begin
-          yield @locked
+          yield token
         ensure
           unlock
         end
@@ -55,17 +58,17 @@ class Redis
     end
 
     def unlock
-      return false unless locked?
+      if token = @held_locks.pop
 
-      @redis.multi do
-        @redis.lpush(available_name, @locked)
-        @redis.hdel grabbed_name, @locked
+        @redis.multi do
+          @redis.lpush(available_name, token)
+          @redis.hdel grabbed_name, token
+        end
       end
-      @locked = false
     end
 
     def locked?
-      !!@locked
+      !@held_locks.empty?
     end
 
 

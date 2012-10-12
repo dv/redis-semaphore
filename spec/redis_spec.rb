@@ -4,14 +4,10 @@ describe "redis" do
   before(:all) do
     # use database 15 for testing so we dont accidentally step on you real data
     @redis = Redis.new :db => 15
-    @semaphore = Redis::Semaphore.new(:my_semaphore, :redis => @redis)
   end
 
   before(:each) do
-    @redis.flushdb
-  end
-
-  after(:each) do
+    @semaphore = Redis::Semaphore.new(:my_semaphore, :redis => @redis)
     @redis.flushdb
   end
 
@@ -54,7 +50,7 @@ describe "redis" do
     ids.uniq.size.should == 1
   end
 
-  it "should have 5 different indexes for 5 parallel calls" do
+  it "should have 5 different indexes for 5 parallel calls and it should unlock all properly" do
     multisem = Redis::Semaphore.new(:my_semaphore5_parallel, :resources => 5, :redis => @redis)
     ids = []
     multisem.lock(1) do |i|
@@ -76,6 +72,8 @@ describe "redis" do
       end
     end
     (0..4).to_a.should == ids
+
+    @redis.lrange(multisem.send(:available_name),0,10).sort.should == %w(0 1 2 3 4)
   end
 
   it "should execute the given code block" do
