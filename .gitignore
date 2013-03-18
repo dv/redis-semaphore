@@ -3,3 +3,5 @@
 .rspec
 .bundle
 .rbenv-version
+Gemfile.lock
+
