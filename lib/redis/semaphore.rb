@@ -1,124 +1,161 @@
 require 'redis'
 
 class Redis
-  class InconsistentStateError < StandardError
-  end
-
   class Semaphore
+    API_VERSION = "1"
 
     #stale_client_timeout is the threshold of time before we assume
     #that something has gone terribly wrong with a client and we
     #invalidate it's lock.
-    #Default is nil for which we don't check for stale clients
-    # RedisSemaphore.new(:my_semaphore, :stale_client_timeout => 30, :redis => myRedis)
-    # RedisSempahore.new(:my_semaphore, :redis => myRedis)
-    # RedisSemaphore.new(:my_semaphore, :resources => 1, :redis => myRedis)
-    # RedisSemaphore.new(:my_semaphore, :connection => "", :port => "")
-    # RedisSemaphore.new(:my_semaphore, :path => "bla")
-    def initialize(name, opts={})
+    # Default is nil for which we don't check for stale clients
+    # Redis::Semaphore.new(:my_semaphore, :stale_client_timeout => 30, :redis => myRedis)
+    # Redis::Semaphore.new(:my_semaphore, :redis => myRedis)
+    # Redis::Semaphore.new(:my_semaphore, :resources => 1, :redis => myRedis)
+    # Redis::Semaphore.new(:my_semaphore, :connection => "", :port => "")
+    # Redis::Semaphore.new(:my_semaphore, :path => "bla")
+    def initialize(name, opts = {})
       @name = name
-      @resources = opts.delete(:resources)
-      @resources ||= 1
+      @resource_count = opts.delete(:resources) || 1
       @stale_client_timeout = opts.delete(:stale_client_timeout)
-      @redis = opts.delete(:redis)
-      @redis ||= Redis.new(opts)
-      @namespace = opts.delete(:namespace)
-      @namespace ||= @redis.namespace if @redis.respond_to? :namespace #this fixes the Redis::Namespace issue
-      @namespace ||= 'SEMAPHORE' #fall back to original name
-      @namespace_delim = opts.delete(:namespace_delim) #this allows Redis::Namespace users to pass in ':' as the delimiter
-      @namespace_delim ||= '::'
+      @redis = opts.delete(:redis) || Redis.new(opts)
     end
 
     def available
-      @redis.llen(available_name)
+      @redis.llen(available_key)
     end
 
     def delete!
-      @redis.del(available_name)
-      @redis.del(grabbed_name)
-      @redis.del(exists_name)
+      @redis.del(available_key)
+      @redis.del(grabbed_key)
+      @redis.del(exists_key)
     end
 
-    def lock(timeout = 0)
+    def lock(timeout = 0, &block)
       exists_or_create!
+      release_stale_locks! if check_staleness?
 
-      token = @redis.blpop(available_name, timeout)
-      return false if token.nil?
+      @token = @redis.blpop(available_name, timeout)
+      return false if @token.nil?
 
-      token = token[1].to_i
-      @redis.hset grabbed_name, token, DateTime.now.strftime('%s')
-      token
-    end
-
-    def with_locked_resource(timeout = 0)
-      token = lock(timeout)
-      return false unless token
-      begin
-        yield token
-      ensure
-        unlock(token)
+      @token = token[1]
+      @redis.hset(grabbed_name, @token, Time.now.to_i)
+      
+      if block_given?
+        begin
+          yield @token
+        ensure
+          signal(@token)
+        end
       end
+
+      @token
+    end
+    alias_method :wait, :lock
+
+    def unlock
+      return false unless locked?
+      signal(@token)
     end
 
-    def unlock(token=0)
-      raise InconsistentStateError.new('Invalid Unlock') unless token && locked?(token)
-      @redis.multi do
-        @redis.lpush available_name, token
-        @redis.hdel  grabbed_name,   token
-      end
-    end
-
-    def locked?(token=nil)
+    def locked?(token = nil)
       if token
-        @redis.hexists grabbed_name, token
+        @redis.hexists(grabbed_name, token)
       else
-        @redis.hlen( grabbed_name ) > 0
+        if @token
+          if check_staleness
+            locked?(@token)
+          else
+            true
+          end
+        end
+      end
+    end
+
+    def signal(token = 1)
+      @redis.multi do
+        @redis.hdel grabbed_name, token
+        @redis.lpush available_name, token
       end
     end
 
   private
-    def available_name
-      @available_name ||= namespaced_key_name('AVAILABLE')
+    def simple_mutex(key_name, expires = nil)
+      version = @redis.getset(key_name, API_VERSION)
+
+      return false unless version.nil?
+      @redis.expire(key_name, expires) unless expires.nil?
+
+      begin
+        yield version
+      ensure
+        @redis.del(key_name)
+      end
     end
 
-    def exists_name
-      @exists_name ||= namespaced_key_name('EXISTS')
-    end
+    def release_stale_locks!
+      simple_mutex(release_locks_key, 10) do
+        @redis.hgetall(grabbed_key).each do |token, locked_at|
+          timed_out_at = locked_at.to_i + @stale_client_timeout
 
-    def grabbed_name
-      @grabbed_name ||= namespaced_key_name('GRABBED')
-    end
-
-    def namespaced_key_name(key_name)
-      [@namespace,@name,key_name].join(@namespace_delim)
-    end
-
-    def exists_or_create!
-      old = @redis.get(exists_name)
-      raise InconsistentStateError.new('Code does not match data') if old && old.to_i != @resources
-      if @redis.getset(exists_name, @resources)
-        if @stale_client_timeout
-          #fix missing clients
-          @redis.hgetall(grabbed_name).each do |resource_index, last_held_at|
-            if (last_held_at.to_i + @stale_client_timeout) < DateTime.now.strftime('%s').to_i
-              @redis.multi do
-                @redis.hdel(grabbed_name, resource_index)
-                #in case of race condition, remove the resource that the other process added
-                @redis.lrem(available_name, 0, resource_index)
-                @redis.lpush(available_name, resource_index)
-              end
-            end
-          end
-        end
-      else
-        @redis.multi do
-          @redis.del(grabbed_name)
-          @redis.del(available_name)
-          @resources.times do |index|
-            @redis.rpush(available_name, index)
+          if timed_out_at < Time.now.to_i
+            signal(token)
           end
         end
       end
+    end
+
+    def create!
+      @redis.expire(exists_key, 10)
+
+      @redis.multi do
+        @redis.del(grabbed_key)
+        @redis.del(available_key)
+        @resources.times do |index|
+          @redis.rpush(available_key, index)
+        end
+        @redis.del(exists_key)
+        @redis.set(exists_key, API_VERSION)
+      end
+    end
+
+    def exists_or_create!
+      version = @redis.getset(exists_name, API_VERSION)
+
+      if version.nil?
+        create!
+      elsif version != API_VERSION
+        raise "Semaphore exists but running as wrong version (version #{version} vs #{API_VERSION})."
+      else
+        true
+      end
+    end
+
+    def check_staleness?
+      !@stale_client_timeout.nil?
+    end
+
+    def redis_namespace?
+      (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace))
+    end
+
+    def namespaced_key_name(variable)
+      if redis_namespace?
+        "#{@name}:#{variable}"
+      else
+        "SEMAPHORE:#{@name}:#{variable}"
+      end
+    end
+
+    def available_key
+      @available_key ||= namespaced_key('AVAILABLE')
+    end
+
+    def exists_key
+      @exists_key ||= namespaced_key('EXISTS')
+    end
+
+    def grabbed_key
+      @grabbed_key ||= namespaced_key('GRABBED')
     end
   end
 end
