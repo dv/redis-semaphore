@@ -1,3 +1,5 @@
+[![Code Climate](https://codeclimate.com/github/dv/redis-semaphore.png)](https://codeclimate.com/github/dv/redis-semaphore)
+
 redis-semaphore
 ===============
 
@@ -174,7 +176,7 @@ Changelog
 
 ###0.1.6 March 31, 2013
 - Add non-ownership of tokens
-- Add stale client timeout (thanks timgaleckas!)
+- Add stale client timeout (thanks timgaleckas!).
 
 ###0.1.5 October 1, 2012
 - Add detection of Redis::Namespace definition to avoid potential bug (thanks ruud!).
