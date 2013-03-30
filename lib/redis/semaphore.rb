@@ -18,9 +18,10 @@ class Redis
       @resource_count = opts.delete(:resources) || 1
       @stale_client_timeout = opts.delete(:stale_client_timeout)
       @redis = opts.delete(:redis) || Redis.new(opts)
+      @tokens = []
     end
 
-    def available
+    def available_count
       @redis.llen(available_key)
     end
 
@@ -34,66 +35,66 @@ class Redis
       exists_or_create!
       release_stale_locks! if check_staleness?
 
-      @token = @redis.blpop(available_name, timeout)
-      return false if @token.nil?
+      token_pair = @redis.blpop(available_key, timeout)
+      return false if token_pair.nil?
 
-      @token = token[1]
-      @redis.hset(grabbed_name, @token, Time.now.to_i)
+      current_token = token_pair[1]
+      @tokens.push(current_token)
+      @redis.hset(grabbed_key, current_token, Time.now.to_i)
       
       if block_given?
         begin
-          yield @token
+          yield current_token
         ensure
-          signal(@token)
+          signal(current_token)
         end
       end
 
-      @token
+      current_token
     end
     alias_method :wait, :lock
 
     def unlock
       return false unless locked?
-      signal(@token)
+      signal(@tokens.pop)
     end
 
     def locked?(token = nil)
       if token
-        @redis.hexists(grabbed_name, token)
+        @redis.hexists(grabbed_key, token)
       else
-        if @token
-          if check_staleness
-            locked?(@token)
-          else
-            true
-          end
+        @tokens.each do |token|
+          return true if locked?(token)
         end
+        
+        false
       end
     end
 
     def signal(token = 1)
       @redis.multi do
-        @redis.hdel grabbed_name, token
-        @redis.lpush available_name, token
+        @redis.hdel grabbed_key, token
+        @redis.lpush available_key, token
       end
     end
 
   private
     def simple_mutex(key_name, expires = nil)
-      version = @redis.getset(key_name, API_VERSION)
+      key_name = namespaced_key(key_name) if key_name.kind_of? Symbol
+      token = @redis.getset(key_name, API_VERSION)
 
-      return false unless version.nil?
+      return false unless token.nil?
       @redis.expire(key_name, expires) unless expires.nil?
 
       begin
-        yield version
+        yield token
       ensure
         @redis.del(key_name)
       end
     end
 
     def release_stale_locks!
-      simple_mutex(release_locks_key, 10) do
+      simple_mutex(:release_locks, 10) do
         @redis.hgetall(grabbed_key).each do |token, locked_at|
           timed_out_at = locked_at.to_i + @stale_client_timeout
 
@@ -110,20 +111,22 @@ class Redis
       @redis.multi do
         @redis.del(grabbed_key)
         @redis.del(available_key)
-        @resources.times do |index|
+        @resource_count.times do |index|
           @redis.rpush(available_key, index)
         end
+
+        # Persist key
         @redis.del(exists_key)
         @redis.set(exists_key, API_VERSION)
       end
     end
 
     def exists_or_create!
-      version = @redis.getset(exists_name, API_VERSION)
+      token = @redis.getset(exists_key, API_VERSION)
 
-      if version.nil?
+      if token.nil?
         create!
-      elsif version != API_VERSION
+      elsif token != API_VERSION
         raise "Semaphore exists but running as wrong version (version #{version} vs #{API_VERSION})."
       else
         true
@@ -138,7 +141,7 @@ class Redis
       (defined?(Redis::Namespace) && @redis.is_a?(Redis::Namespace))
     end
 
-    def namespaced_key_name(variable)
+    def namespaced_key(variable)
       if redis_namespace?
         "#{@name}:#{variable}"
       else
