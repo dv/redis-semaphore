@@ -21,6 +21,18 @@ class Redis
       @tokens = []
     end
 
+    def exists_or_create!
+      token = @redis.getset(exists_key, API_VERSION)
+
+      if token.nil?
+        create!
+      elsif token != API_VERSION
+        raise "Semaphore exists but running as wrong version (version #{version} vs #{API_VERSION})."
+      else
+        true
+      end
+    end
+
     def available_count
       @redis.llen(available_key)
     end
@@ -31,7 +43,7 @@ class Redis
       @redis.del(exists_key)
     end
 
-    def lock(timeout = 0, &block)
+    def lock(timeout = 0)
       exists_or_create!
       release_stale_locks! if check_staleness?
 
@@ -56,7 +68,7 @@ class Redis
 
     def unlock
       return false unless locked?
-      signal(@tokens.pop)
+      signal(@tokens.pop)[1]
     end
 
     def locked?(token = nil)
@@ -72,9 +84,31 @@ class Redis
     end
 
     def signal(token = 1)
+      token ||= generate_unique_token
+
       @redis.multi do
         @redis.hdel grabbed_key, token
         @redis.lpush available_key, token
+      end
+    end
+
+    def exists?
+      @redis.exists(exists_key)
+    end
+
+    def all_tokens
+      @redis.multi do
+        @redis.lrange(available_key, 0, -1)
+        @redis.lrange(grabbed_key, 0, -1)
+      end.flatten
+    end
+
+    def generate_unique_token
+      tokens = all_tokens
+      token = Random.rand.to_s
+
+      while(tokens.include? token)
+        token = Random.rand.to_s
       end
     end
 
@@ -118,18 +152,6 @@ class Redis
         # Persist key
         @redis.del(exists_key)
         @redis.set(exists_key, API_VERSION)
-      end
-    end
-
-    def exists_or_create!
-      token = @redis.getset(exists_key, API_VERSION)
-
-      if token.nil?
-        create!
-      elsif token != API_VERSION
-        raise "Semaphore exists but running as wrong version (version #{version} vs #{API_VERSION})."
-      else
-        true
       end
     end
 
