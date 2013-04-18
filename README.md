@@ -101,16 +101,16 @@ To allow for clients to die, and the token returned to the list, a stale-check w
 There are two ways to take advantage of this. You can either define a :stale\_client\_timeout upon initialization. This will check for stale locks everytime your program wants to lock the semaphore:
 
 ```ruby
-s = Redis::Semaphore(:stale_semaphore, :redis = r, :stale_client_timeout => 1000) # in ms
+s = Redis::Semaphore.new(:stale_semaphore, :redis = r, :stale_client_timeout => 1000) # in ms
 ```
 
 Or you could start a different thread or program that frequently checks for stale locks. This has the advantage of unblocking blocking calls to Semaphore#lock as well:
 
 ```ruby
-normal_sem = Redis::Semaphore(:semaphore, :connection => "localhost")
+normal_sem = Redis::Semaphore.new(:semaphore, :connection => "localhost")
 
 Thread.new do
-  watchdog = Redis::Semaphore(:semaphore, :connection => "localhost", :stale_client_timeout => 1000)
+  watchdog = Redis::Semaphore.new(:semaphore, :connection => "localhost", :stale_client_timeout => 1000)
   
   while(true) do
     watchdog.release_stale_locks!
