@@ -174,6 +174,9 @@ Testing
 Changelog
 ---------
 
+###0.1.7 April 18, 2013
+- Fix bug where ```release\_stale\_locks!``` was not public (thanks scomma!).
+
 ###0.1.6 March 31, 2013
 - Add non-ownership of tokens
 - Add stale client timeout (thanks timgaleckas!).
@@ -204,8 +207,9 @@ Author
 Contributors
 ------------
 
-Thanks to these awesome fellas for their contributions:
+Thanks to these awesome peeps for their contributions:
 
 - [Rimas Silkaitis](https://github.com/neovintage)
 - [Tim Galeckas](https://github.com/timgaleckas)
 - [Ruurd Pels](https://github.com/ruurd)
+- [Prathan Thananart](https://github.com/scomma)
