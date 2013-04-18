@@ -112,6 +112,18 @@ class Redis
       end
     end
 
+    def release_stale_locks!
+      simple_mutex(:release_locks, 10) do
+        @redis.hgetall(grabbed_key).each do |token, locked_at|
+          timed_out_at = locked_at.to_f + @stale_client_timeout
+
+          if timed_out_at < Time.now.to_f
+            signal(token)
+          end
+        end
+      end
+    end
+
   private
     def simple_mutex(key_name, expires = nil)
       key_name = namespaced_key(key_name) if key_name.kind_of? Symbol
@@ -124,18 +136,6 @@ class Redis
         yield token
       ensure
         @redis.del(key_name)
-      end
-    end
-
-    def release_stale_locks!
-      simple_mutex(:release_locks, 10) do
-        @redis.hgetall(grabbed_key).each do |token, locked_at|
-          timed_out_at = locked_at.to_i + @stale_client_timeout
-
-          if timed_out_at < Time.now.to_i
-            signal(token)
-          end
-        end
       end
     end
 

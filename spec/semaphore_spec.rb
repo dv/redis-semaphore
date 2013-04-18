@@ -118,6 +118,21 @@ describe "redis" do
 
       semaphore.available_count.should == 1
     end
+
+    it "can have stale locks released by a third process" do    
+      watchdog = Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 1)
+      semaphore.lock
+      
+      sleep 0.5
+
+      watchdog.release_stale_locks!
+      semaphore.locked?.should == true
+
+      sleep 0.6
+
+      watchdog.release_stale_locks!
+      semaphore.locked?.should == false
+    end
   end
 
   describe "semaphore with staleness checking" do
