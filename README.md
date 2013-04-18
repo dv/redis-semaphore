@@ -175,7 +175,7 @@ Changelog
 ---------
 
 ###0.1.7 April 18, 2013
-- Fix bug where ```release\_stale\_locks!``` was not public (thanks scomma!).
+- Fix bug where ```release_stale_locks!``` was not public (thanks scomma!).
 
 ###0.1.6 March 31, 2013
 - Add non-ownership of tokens
