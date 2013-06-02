@@ -52,7 +52,7 @@ class Redis
 
       current_token = token_pair[1]
       @tokens.push(current_token)
-      @redis.hset(grabbed_key, current_token, Time.now.to_i)
+      @redis.hset(grabbed_key, current_token, current_time.to_f)
       
       if block_given?
         begin
@@ -117,7 +117,7 @@ class Redis
         @redis.hgetall(grabbed_key).each do |token, locked_at|
           timed_out_at = locked_at.to_f + @stale_client_timeout
 
-          if timed_out_at < Time.now.to_f
+          if timed_out_at < current_time.to_f
             signal(token)
           end
         end
@@ -181,6 +181,11 @@ class Redis
 
     def grabbed_key
       @grabbed_key ||= namespaced_key('GRABBED')
+    end
+
+    def current_time
+      instant = @redis.time
+      Time.at(instant[0], instant[1])
     end
   end
 end
