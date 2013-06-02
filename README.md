@@ -174,6 +174,10 @@ Testing
 Changelog
 ---------
 
+###0.2.0 June 2, 2013
+- Use Redis TIME command for lock timeouts (thanks dubdronic!).
+- Version increase because of new dependency on Redis 2.6+
+
 ###0.1.7 April 18, 2013
 - Fix bug where ```release_stale_locks!``` was not public (thanks scomma!).
 
@@ -213,3 +217,4 @@ Thanks to these awesome peeps for their contributions:
 - [Tim Galeckas](https://github.com/timgaleckas)
 - [Ruurd Pels](https://github.com/ruurd)
 - [Prathan Thananart](https://github.com/scomma)
+- [dubdromic](https://github.com/dubdromic)
