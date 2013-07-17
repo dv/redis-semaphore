@@ -184,8 +184,16 @@ class Redis
     end
 
     def current_time
-      instant = @redis.time
-      Time.at(instant[0], instant[1])
+      if server_version.to_f >= 2.6
+        instant = @redis.time
+        Time.at(instant[0], instant[1])
+      else
+        Time.now
+      end
+    end
+
+    def server_version
+      @redis.info['redis_version']
     end
   end
 end
