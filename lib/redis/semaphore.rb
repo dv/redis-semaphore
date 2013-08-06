@@ -18,6 +18,7 @@ class Redis
       @resource_count = opts.delete(:resources) || 1
       @stale_client_timeout = opts.delete(:stale_client_timeout)
       @redis = opts.delete(:redis) || Redis.new(opts)
+      @use_local_time = opts.delete(:use_local_time)
       @tokens = []
     end
 
@@ -184,16 +185,17 @@ class Redis
     end
 
     def current_time
-      if server_version.to_f >= 2.6
-        instant = @redis.time
-        Time.at(instant[0], instant[1])
-      else
+      if @use_local_time
         Time.now
+      else
+        begin
+          instant = @redis.time
+          Time.at(instant[0], instant[1])
+        rescue
+          @use_local_time = true
+          current_time
+        end
       end
-    end
-
-    def server_version
-      @redis.info['redis_version']
     end
   end
 end
