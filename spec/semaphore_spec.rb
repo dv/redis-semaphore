@@ -149,4 +149,26 @@ describe "redis" do
       hyper_aggressive_sem.lock(1).should_not == false
     end
   end
+
+  describe "redis time" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5) }
+
+    before(:all) do
+      Timecop.freeze(Time.local(1990))
+    end
+
+    it "with time support should return a different time than frozen time" do
+      semaphore.send(:current_time).should_not == Time.now
+    end
+
+    it "with use_local_time should return the same time as frozen time" do
+      semaphore = Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5, :use_local_time => true)
+      semaphore.send(:current_time).should == Time.now
+    end
+
+    it "without time support should return the same time as frozen time" do
+      @redis.stub(:time) { raise Redis::CommandError }
+      semaphore.send(:current_time).should == Time.now
+    end
+  end
 end
