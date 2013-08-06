@@ -130,6 +130,8 @@ normal_sem.lock(5) # will block until the watchdog releases the previous lock af
 Advanced
 --------
 
+### Wait and Signal
+
 The methods ```wait``` and ```signal```, the traditional method names of a Semaphore, are also implemented. ```wait``` is aliased to lock, while ```signal``` puts the specified token back on the semaphore, or generates a unique new token and puts that back if none is passed:
 
 ```ruby
@@ -160,6 +162,19 @@ semaphore.signal(new_job) # Job can be any string, it will be passed unmodified 
 Used in this fashion, a timeout does not make sense. Using the :stale\_client\_timeout here is not recommended.
 
 
+### Use local time
+
+When calculating the timeouts, redis-semaphore uses the Redis TIME command by default, which fetches the time on the Redis server. This is good if you're running distributed semaphores to keep all clients on the same clock, but does incur an extra round-trip for every action that requires the time.
+
+You can add the option ```:use_local_time => true``` during initialization to use the local time of the client instead of the Redis server time, which saves one extra roundtrip. This is good if e.g. you're only running one client.
+
+```ruby
+s = Redis::Semaphore.new(:local_semaphore, :redis = r, :stale_client_timeout => 5, :use_local_time => true)
+```
+
+Redis servers earlier than version 2.6 don't support the TIME command. In that case we fall back to using the local time automatically.
+
+
 Installation
 ------------
 
@@ -173,6 +188,10 @@ Testing
 
 Changelog
 ---------
+
+###0.2.1 August 6, 2013
+- Remove dependency on Redis 2.6+ using fallback for TIME command (thanks dubdromic!).
+- Add ```:use_local_time``` option
 
 ###0.2.0 June 2, 2013
 - Use Redis TIME command for lock timeouts (thanks dubdromic!).
