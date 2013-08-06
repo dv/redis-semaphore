@@ -175,7 +175,7 @@ Changelog
 ---------
 
 ###0.2.0 June 2, 2013
-- Use Redis TIME command for lock timeouts (thanks dubdronic!).
+- Use Redis TIME command for lock timeouts (thanks dubdromic!).
 - Version increase because of new dependency on Redis 2.6+
 
 ###0.1.7 April 18, 2013
