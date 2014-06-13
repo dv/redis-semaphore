@@ -28,7 +28,7 @@ class Redis
       if token.nil?
         create!
       elsif token != API_VERSION
-        raise "Semaphore exists but running as wrong version (version #{version} vs #{API_VERSION})."
+        raise "Semaphore exists but running as wrong version (version #{token} vs #{API_VERSION})."
       else
         true
       end
