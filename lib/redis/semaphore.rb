@@ -100,7 +100,7 @@ class Redis
     def all_tokens
       @redis.multi do
         @redis.lrange(available_key, 0, -1)
-        @redis.lrange(grabbed_key, 0, -1)
+        @redis.hkeys(grabbed_key)
       end.flatten
     end
 

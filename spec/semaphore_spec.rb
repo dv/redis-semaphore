@@ -171,4 +171,17 @@ describe "redis" do
       semaphore.send(:current_time).should == Time.now
     end
   end
+
+  describe "all_tokens" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5) }
+
+    it "includes tokens from available and grabbed keys" do
+      semaphore.exists_or_create!
+      available_keys = semaphore.all_tokens
+      semaphore.lock(1)
+      grabbed_keys = semaphore.all_tokens
+
+      available_keys.should == grabbed_keys
+    end
+  end
 end
