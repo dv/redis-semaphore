@@ -189,6 +189,10 @@ Testing
 Changelog
 ---------
 
+###0.2.2 June 16, 2014
+- Fixed bug in `all_tokens` (thanks presskey!).
+- Fixed bug in error message (thanks Dmitriy!).
+
 ###0.2.1 August 6, 2013
 - Remove dependency on Redis 2.6+ using fallback for TIME command (thanks dubdromic!).
 - Add ```:use_local_time``` option
@@ -237,3 +241,5 @@ Thanks to these awesome peeps for their contributions:
 - [Ruurd Pels](https://github.com/ruurd)
 - [Prathan Thananart](https://github.com/scomma)
 - [dubdromic](https://github.com/dubdromic)
+- [Dmitriy Kiriyenko](https://github.com/dmitriy-kiriyenko)
+- [presskey](https://github.com/presskey)
