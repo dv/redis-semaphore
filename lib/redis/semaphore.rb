@@ -28,7 +28,7 @@ class Redis
       if token.nil?
         create!
       elsif token != API_VERSION
-        raise "Semaphore exists but running as wrong version (version #{version} vs #{API_VERSION})."
+        raise "Semaphore exists but running as wrong version (version #{token} vs #{API_VERSION})."
       else
         true
       end
@@ -100,7 +100,7 @@ class Redis
     def all_tokens
       @redis.multi do
         @redis.lrange(available_key, 0, -1)
-        @redis.lrange(grabbed_key, 0, -1)
+        @redis.hkeys(grabbed_key)
       end.flatten
     end
 
