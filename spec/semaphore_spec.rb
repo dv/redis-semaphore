@@ -18,56 +18,56 @@ describe "redis" do
 
     it "has the correct amount of available resources" do
       semaphore.lock
-      semaphore.unlock.should == 1
-      semaphore.available_count.should == 1
+      expect(semaphore.unlock).to eq(1)
+      expect(semaphore.available_count).to eq(1)
     end
 
     it "should not exist from the start" do
-      semaphore.exists?.should == false
+      expect(semaphore.exists?).to eq(false)
       semaphore.lock
-      semaphore.exists?.should == true
+      expect(semaphore.exists?).to eq(true)
     end
 
     it "should be unlocked from the start" do
-      semaphore.locked?.should == false
+      expect(semaphore.locked?).to eq(false)
     end
 
     it "should lock and unlock" do
       semaphore.lock(1)
-      semaphore.locked?.should == true
+      expect(semaphore.locked?).to eq(true)
       semaphore.unlock
-      semaphore.locked?.should == false
+      expect(semaphore.locked?).to eq(false)
     end
 
     it "should not lock twice as a mutex" do
-      semaphore.lock(1).should_not == false
-      semaphore.lock(1).should == false
+      expect(semaphore.lock(1)).not_to eq(false)
+      expect(semaphore.lock(1)).to eq(false)
     end
 
     it "should not lock three times when only two available" do
-      multisem.lock(1).should_not == false
-      multisem.lock(1).should_not == false
-      multisem.lock(1).should == false
+      expect(multisem.lock(1)).not_to eq(false)
+      expect(multisem.lock(1)).not_to eq(false)
+      expect(multisem.lock(1)).to eq(false)
     end
 
     it "should always have the correct lock-status" do
       multisem.lock(1)
       multisem.lock(1)
 
-      multisem.locked?.should == true
+      expect(multisem.locked?).to eq(true)
       multisem.unlock
-      multisem.locked?.should == true
+      expect(multisem.locked?).to eq(true)
       multisem.unlock
-      multisem.locked?.should == false
+      expect(multisem.locked?).to eq(false)
     end
 
     it "should get all different tokens when saturating" do
       ids = []
-      2.times do 
+      2.times do
         ids << multisem.lock(1)
       end
 
-      ids.should == %w(0 1)
+      expect(ids).to eq(%w(0 1))
     end
 
     it "should execute the given code block" do
@@ -75,25 +75,25 @@ describe "redis" do
       semaphore.lock(1) do
         code_executed = true
       end
-      code_executed.should == true
+      expect(code_executed).to eq(true)
     end
 
     it "should pass an exception right through" do
-      lambda do
+      expect {
         semaphore.lock(1) do
           raise Exception, "redis semaphore exception"
         end
-      end.should raise_error(Exception, "redis semaphore exception")
+      }.to raise_error(Exception, "redis semaphore exception")
     end
 
     it "should not leave the semaphore locked after raising an exception" do
-      lambda do
+      expect {
         semaphore.lock(1) do
           raise Exception
         end
-      end.should raise_error
+      }.to raise_error
 
-      semaphore.locked?.should == false
+      expect(semaphore.locked?).to eq(false)
     end
   end
 
@@ -110,28 +110,28 @@ describe "redis" do
         semaphore.signal
       end
 
-      semaphore.available_count.should == 4
+      expect(semaphore.available_count).to eq(4)
 
       semaphore.wait(1)
       semaphore.wait(1)
       semaphore.wait(1)
 
-      semaphore.available_count.should == 1
+      expect(semaphore.available_count).to eq(1)
     end
 
-    it "can have stale locks released by a third process" do    
+    it "can have stale locks released by a third process" do
       watchdog = Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 1)
       semaphore.lock
-      
+
       sleep 0.5
 
       watchdog.release_stale_locks!
-      semaphore.locked?.should == true
+      expect(semaphore.locked?).to eq(true)
 
       sleep 0.6
 
       watchdog.release_stale_locks!
-      semaphore.locked?.should == false
+      expect(semaphore.locked?).to eq(false)
     end
   end
 
@@ -144,9 +144,9 @@ describe "redis" do
     it "should restore resources of stale clients" do
       hyper_aggressive_sem = Redis::Semaphore.new(:hyper_aggressive_sem, :resources => 1, :redis => @redis, :stale_client_timeout => 1)
 
-      hyper_aggressive_sem.lock(1).should_not == false
-      hyper_aggressive_sem.lock(1).should == false
-      hyper_aggressive_sem.lock(1).should_not == false
+      expect(hyper_aggressive_sem.lock(1)).not_to eq(false)
+      expect(hyper_aggressive_sem.lock(1)).to eq(false)
+      expect(hyper_aggressive_sem.lock(1)).not_to eq(false)
     end
   end
 
@@ -158,17 +158,17 @@ describe "redis" do
     end
 
     it "with time support should return a different time than frozen time" do
-      semaphore.send(:current_time).should_not == Time.now
+      expect(semaphore.send(:current_time)).not_to eq(Time.now)
     end
 
     it "with use_local_time should return the same time as frozen time" do
       semaphore = Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5, :use_local_time => true)
-      semaphore.send(:current_time).should == Time.now
+      expect(semaphore.send(:current_time)).to eq(Time.now)
     end
 
     it "without time support should return the same time as frozen time" do
-      @redis.stub(:time) { raise Redis::CommandError }
-      semaphore.send(:current_time).should == Time.now
+      expect(@redis).to receive(:time).and_raise(Redis::CommandError)
+      expect(semaphore.send(:current_time)).to eq(Time.now)
     end
   end
 
@@ -181,7 +181,7 @@ describe "redis" do
       semaphore.lock(1)
       grabbed_keys = semaphore.all_tokens
 
-      available_keys.should == grabbed_keys
+      expect(available_keys).to eq(grabbed_keys)
     end
   end
 end
