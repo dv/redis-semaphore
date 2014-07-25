@@ -95,6 +95,23 @@ describe "redis" do
 
       expect(semaphore.locked?).to eq(false)
     end
+
+    it "should return the value of the block if block-style locking is used" do
+      block_value = semaphore.lock(1) do
+        42
+      end
+      expect(block_value).to eq(42)
+    end
+
+    it "can return the passed in token to replicate old behaviour" do
+      lock_token = semaphore.lock(1)
+      semaphore.unlock()
+
+      block_value = semaphore.lock(1) do |token|
+        token
+      end
+      expect(block_value).to eq(lock_token)
+    end
   end
 
   describe "semaphore without staleness checking" do
