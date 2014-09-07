@@ -111,7 +111,7 @@ normal_sem = Redis::Semaphore.new(:semaphore, :connection => "localhost")
 
 Thread.new do
   watchdog = Redis::Semaphore.new(:semaphore, :connection => "localhost", :stale_client_timeout => 5)
-  
+
   while(true) do
     watchdog.release_stale_locks!
     sleep 1
@@ -189,6 +189,9 @@ Testing
 Changelog
 ---------
 
+###0.2.3 September 7, 2014
+- Block-based locking return the value of the block (thanks frobcode!).
+
 ###0.2.2 June 16, 2014
 - Fixed bug in `all_tokens` (thanks presskey!).
 - Fixed bug in error message (thanks Dmitriy!).
@@ -243,3 +246,5 @@ Thanks to these awesome peeps for their contributions:
 - [dubdromic](https://github.com/dubdromic)
 - [Dmitriy Kiriyenko](https://github.com/dmitriy-kiriyenko)
 - [presskey](https://github.com/presskey)
+- [Stephen Bussey](https://github.com/sb8244)
+- [frobcode](https://github.com/frobcode)

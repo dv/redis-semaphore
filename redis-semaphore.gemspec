@@ -1,10 +1,11 @@
 Gem::Specification.new do |s|
   s.name        = 'redis-semaphore'
-  s.version     = '0.2.2'
+  s.version     = '0.2.3'
   s.summary     = 'Implements a distributed semaphore or mutex using Redis.'
   s.authors     = ['David Verhasselt']
   s.email       = 'david@crowdway.com'
   s.homepage    = 'http://github.com/dv/redis-semaphore'
+  s.license     = 'MIT'
 
   files         = %w(README.md Rakefile LICENSE)
   files        += Dir.glob("lib/**/*")
