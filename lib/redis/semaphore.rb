@@ -54,16 +54,17 @@ class Redis
       current_token = token_pair[1]
       @tokens.push(current_token)
       @redis.hset(grabbed_key, current_token, current_time.to_f)
-      
+      return_value = current_token
+
       if block_given?
         begin
-          yield current_token
+          return_value = yield current_token
         ensure
           signal(current_token)
         end
       end
 
-      current_token
+      return_value
     end
     alias_method :wait, :lock
 
