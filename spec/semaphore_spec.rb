@@ -114,6 +114,20 @@ describe "redis" do
     end
   end
 
+  describe "semaphore with expiration" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :expiration => 2) }
+    let(:multisem) { Redis::Semaphore.new(:my_semaphore_2, :resources => 2, :redis => @redis, :expiration => 2) }
+
+    it_behaves_like "a semaphore"
+
+    it "expires keys" do
+      original_key_size = @redis.keys.count
+      semaphore.exists_or_create!
+      sleep 3.0
+      expect(@redis.keys.count).to eq(original_key_size)
+    end
+  end
+
   describe "semaphore without staleness checking" do
     let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
     let(:multisem) { Redis::Semaphore.new(:my_semaphore_2, :resources => 2, :redis => @redis) }
