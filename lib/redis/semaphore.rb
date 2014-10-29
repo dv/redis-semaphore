@@ -15,6 +15,7 @@ class Redis
     # Redis::Semaphore.new(:my_semaphore, :path => "bla")
     def initialize(name, opts = {})
       @name = name
+      @expiration = opts.delete(:expiration)
       @resource_count = opts.delete(:resources) || 1
       @stale_client_timeout = opts.delete(:stale_client_timeout)
       @redis = opts.delete(:redis) || Redis.new(opts)
@@ -30,6 +31,7 @@ class Redis
       elsif token != API_VERSION
         raise "Semaphore exists but running as wrong version (version #{token} vs #{API_VERSION})."
       else
+        set_expiration
         true
       end
     end
@@ -80,7 +82,7 @@ class Redis
         @tokens.each do |token|
           return true if locked?(token)
         end
-        
+
         false
       end
     end
@@ -150,10 +152,17 @@ class Redis
         @resource_count.times do |index|
           @redis.rpush(available_key, index)
         end
-
         # Persist key
         @redis.del(exists_key)
         @redis.set(exists_key, API_VERSION)
+        set_expiration
+      end
+    end
+
+    def set_expiration
+      if @expiration
+        @redis.expire(available_key, @expiration)
+        @redis.expire(exists_key, @expiration)
       end
     end
 
