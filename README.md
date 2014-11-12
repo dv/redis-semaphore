@@ -15,7 +15,7 @@ Usage
 Create a mutex:
 
 ```ruby
-s = Redis::Semaphore.new(:semaphore_name, :connection => "localhost")
+s = Redis::Semaphore.new(:semaphore_name, :host => "localhost")
 s.lock do
   # We're now in a mutex protected area
   # No matter how many processes are running this program,
@@ -29,7 +29,7 @@ While our application is inside the code block given to ```s.lock```, other call
 You can also allow a set number of processes inside the semaphore-protected block, in case you have a well-defined number of resources available:
 
 ```ruby
-s = Redis::Semaphore.new(:semaphore_name, :resources => 5, :connection => "localhost")
+s = Redis::Semaphore.new(:semaphore_name, :resources => 5, :host => "localhost")
 s.lock do
   # Up to five processes at a time will be able to get inside this code
   # block simultaneously.
@@ -40,7 +40,7 @@ end
 You're not obligated to use code blocks, linear calls work just fine:
 
 ```ruby
-s = Redis::Semaphore.new(:semaphore_name, :connection => "localhost")
+s = Redis::Semaphore.new(:semaphore_name, :host => "localhost")
 s.lock
 work
 s.unlock  # Don't forget this, or the mutex will stay locked!
@@ -75,7 +75,7 @@ sem.available_count # also returns 1
 In the constructor you can pass in any arguments that you would pass to a regular Redis constructor. You can even pass in your custom Redis client:
 
 ```ruby
-r = Redis.new(:connection => "localhost", :db => 222)
+r = Redis.new(:host => "localhost", :db => 222)
 s = Redis::Semaphore.new(:another_name, :redis => r)
 #...
 ```
@@ -107,10 +107,10 @@ s = Redis::Semaphore.new(:stale_semaphore, :redis = r, :stale_client_timeout => 
 Or you could start a different thread or program that frequently checks for stale locks. This has the advantage of unblocking blocking calls to Semaphore#lock as well:
 
 ```ruby
-normal_sem = Redis::Semaphore.new(:semaphore, :connection => "localhost")
+normal_sem = Redis::Semaphore.new(:semaphore, :host => "localhost")
 
 Thread.new do
-  watchdog = Redis::Semaphore.new(:semaphore, :connection => "localhost", :stale_client_timeout => 5)
+  watchdog = Redis::Semaphore.new(:semaphore, :host => "localhost", :stale_client_timeout => 5)
 
   while(true) do
     watchdog.release_stale_locks!
