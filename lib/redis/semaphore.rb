@@ -190,7 +190,7 @@ class Redis
         Time.now
       else
         begin
-          instant = @redis.time
+          instant = redis_namespace? ? @redis.redis.time : @redis.time
           Time.at(instant[0], instant[1])
         rescue
           @use_local_time = true
