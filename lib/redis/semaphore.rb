@@ -129,9 +129,9 @@ class Redis
   private
     def simple_mutex(key_name, expires = nil)
       key_name = namespaced_key(key_name) if key_name.kind_of? Symbol
-      token = @redis.getset(key_name, API_VERSION)
+      token = @redis.setnx(key_name, API_VERSION)
 
-      return false unless token.nil?
+      return false unless token
       @redis.expire(key_name, expires) unless expires.nil?
 
       begin
