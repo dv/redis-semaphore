@@ -224,4 +224,23 @@ describe "redis" do
       expect(available_keys).to eq(grabbed_keys)
     end
   end
+
+  describe "version" do
+    context "with an existing versionless semaphore" do
+      let(:old_sem) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+      let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+      let(:version_key) { old_sem.send(:version_key) }
+
+      before do
+        old_sem.exists_or_create!
+        @redis.del(version_key)
+      end
+
+      it "sets the version key" do
+        semaphore.exists_or_create!
+        expect(@redis.get(version_key)).not_to be_nil
+      end
+    end
+  end
+
 end
