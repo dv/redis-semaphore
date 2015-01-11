@@ -50,6 +50,7 @@ class Redis
       @redis.del(available_key)
       @redis.del(grabbed_key)
       @redis.del(exists_key)
+      @redis.del(version_key)
     end
 
     def lock(timeout = 0)

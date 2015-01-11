@@ -112,6 +112,15 @@ describe "redis" do
       end
       expect(block_value).to eq(lock_token)
     end
+
+    it "should disappear without a trace when calling `delete!`" do
+      original_key_size = @redis.keys.count
+
+      semaphore.exists_or_create!
+      semaphore.delete!
+
+      expect(@redis.keys.count).to eq(original_key_size)
+    end
   end
 
   describe "semaphore with expiration" do
