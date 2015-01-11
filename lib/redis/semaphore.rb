@@ -5,9 +5,9 @@ class Redis
     EXISTS_TOKEN = "1"
     API_VERSION = "1"
 
-    #stale_client_timeout is the threshold of time before we assume
-    #that something has gone terribly wrong with a client and we
-    #invalidate it's lock.
+    # stale_client_timeout is the threshold of time before we assume
+    # that something has gone terribly wrong with a client and we
+    # invalidate it's lock.
     # Default is nil for which we don't check for stale clients
     # Redis::Semaphore.new(:my_semaphore, :stale_client_timeout => 30, :redis => myRedis)
     # Redis::Semaphore.new(:my_semaphore, :redis => myRedis)
@@ -135,6 +135,7 @@ class Redis
     end
 
   private
+
     def simple_mutex(key_name, expires = nil)
       key_name = namespaced_key(key_name) if key_name.kind_of? Symbol
       token = @redis.getset(key_name, API_VERSION)
