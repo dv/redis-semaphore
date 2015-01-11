@@ -31,7 +31,7 @@ class Redis
       elsif token != API_VERSION
         raise "Semaphore exists but running as wrong version (version #{token} vs #{API_VERSION})."
       else
-        set_expiration
+        set_expiration_if_necessary
         true
       end
     end
@@ -155,11 +155,11 @@ class Redis
         # Persist key
         @redis.del(exists_key)
         @redis.set(exists_key, API_VERSION)
-        set_expiration
+        set_expiration_if_necessary
       end
     end
 
-    def set_expiration
+    def set_expiration_if_necessary
       if @expiration
         @redis.expire(available_key, @expiration)
         @redis.expire(exists_key, @expiration)
