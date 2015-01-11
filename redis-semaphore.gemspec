@@ -12,7 +12,11 @@ Gem::Specification.new do |s|
   files        += Dir.glob("spec/**/*")
   s.files       = files
 
-  s.add_dependency  'redis'
+  s.add_dependency 'redis'
+  s.add_development_dependency 'rake'
+  s.add_development_dependency 'rspec'
+  s.add_development_dependency 'pry'
+  s.add_development_dependency 'timecop'
 
   s.description = <<description
 Implements a distributed semaphore or mutex using Redis.
