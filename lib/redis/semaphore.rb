@@ -11,7 +11,7 @@ class Redis
     # Redis::Semaphore.new(:my_semaphore, :stale_client_timeout => 30, :redis => myRedis)
     # Redis::Semaphore.new(:my_semaphore, :redis => myRedis)
     # Redis::Semaphore.new(:my_semaphore, :resources => 1, :redis => myRedis)
-    # Redis::Semaphore.new(:my_semaphore, :connection => "", :port => "")
+    # Redis::Semaphore.new(:my_semaphore, :host => "", :port => "")
     # Redis::Semaphore.new(:my_semaphore, :path => "bla")
     def initialize(name, opts = {})
       @name = name
