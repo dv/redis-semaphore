@@ -2,6 +2,7 @@ require 'redis'
 
 class Redis
   class Semaphore
+    EXISTS_TOKEN = "1"
     API_VERSION = "1"
 
     #stale_client_timeout is the threshold of time before we assume
@@ -24,13 +25,18 @@ class Redis
     end
 
     def exists_or_create!
-      token = @redis.getset(exists_key, API_VERSION)
+      token = @redis.getset(exists_key, EXISTS_TOKEN)
 
       if token.nil?
         create!
-      elsif token != API_VERSION
-        raise "Semaphore exists but running as wrong version (version #{token} vs #{API_VERSION})."
       else
+        # Previous versions of redis-semaphore did not set `version_key`.
+        # Make sure it's set now, so we can use it in future versions.
+
+        if token == API_VERSION && @redis.get(version_key).nil?
+          @redis.set(version_key, API_VERSION)
+        end
+
         set_expiration_if_necessary
         true
       end
@@ -155,14 +161,16 @@ class Redis
         # Persist key
         @redis.del(exists_key)
         @redis.set(exists_key, API_VERSION)
+        @redis.set(version_key, API_VERSION)
         set_expiration_if_necessary
       end
     end
 
     def set_expiration_if_necessary
       if @expiration
-        @redis.expire(available_key, @expiration)
-        @redis.expire(exists_key, @expiration)
+        [available_key, exists_key, version_key].each do |key|
+          @redis.expire(key, @expiration)
+        end
       end
     end
 
@@ -192,6 +200,10 @@ class Redis
 
     def grabbed_key
       @grabbed_key ||= namespaced_key('GRABBED')
+    end
+
+    def version_key
+      @version_key ||= namespaced_key('VERSION')
     end
 
     def current_time
