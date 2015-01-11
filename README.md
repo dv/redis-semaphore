@@ -200,6 +200,11 @@ Testing
 Changelog
 ---------
 
+###0.2.4 January 11, 2015
+- Fix bug with TIME and redis-namespace (thanks sos4nt!).
+- Add expiration option (thanks jcalvert!).
+- Update API version logic.
+
 ###0.2.3 September 7, 2014
 - Block-based locking return the value of the block (thanks frobcode!).
 
