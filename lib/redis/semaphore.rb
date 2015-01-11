@@ -158,10 +158,9 @@ class Redis
         @resource_count.times do |index|
           @redis.rpush(available_key, index)
         end
-        # Persist key
-        @redis.del(exists_key)
-        @redis.set(exists_key, API_VERSION)
         @redis.set(version_key, API_VERSION)
+        @redis.persist(exists_key)
+
         set_expiration_if_necessary
       end
     end
