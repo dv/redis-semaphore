@@ -1,4 +1,5 @@
-[![Code Climate](https://codeclimate.com/github/dv/redis-semaphore.png)](https://codeclimate.com/github/dv/redis-semaphore)
+[![Code Climate](https://codeclimate.com/github/dv/redis-semaphore.svg?branch=master)](https://codeclimate.com/github/dv/redis-semaphore)
+[![Build Status](https://travis-ci.org/dv/redis-semaphore.svg?branch=master)](https://travis-ci.org/dv/redis-semaphore)
 
 redis-semaphore
 ===============
@@ -7,7 +8,7 @@ Implements a mutex and semaphore using Redis and the neat BLPOP command.
 
 The mutex and semaphore is blocking, not polling, and has a fair queue serving processes on a first-come, first-serve basis. It can also have an optional timeout after which a lock is unlocked automatically, to protect against dead clients.
 
-For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming\)).
+For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming)).
 
 Usage
 -----
@@ -175,6 +176,16 @@ s = Redis::Semaphore.new(:local_semaphore, :redis = r, :stale_client_timeout => 
 Redis servers earlier than version 2.6 don't support the TIME command. In that case we fall back to using the local time automatically.
 
 
+### Expiration
+
+```redis-semaphore``` supports an expiration option, which will call the **EXPIRE** Redis command on all related keys (except for `grabbed_keys`), to make sure that after a while all evidence of the semaphore will disappear and your Redis server will not be cluttered with unused keys. Pass in the expiration timeout in seconds:
+
+```ruby
+s = Redis::Semaphore.new(:local_semaphore, :redis = r, :expiration => 100)
+```
+
+This option should only be used if you know what you're doing. If you chose a wrong expiration timeout then the semaphore might disappear in the middle of a critical section. For most situations just using the `delete!` command should suffice to remove all semaphore keys from the server after you're done using the semaphore.
+
 Installation
 ------------
 
@@ -237,7 +248,7 @@ Author
 Contributors
 ------------
 
-Thanks to these awesome peeps for their contributions:
+Thanks to these awesome people for their contributions:
 
 - [Rimas Silkaitis](https://github.com/neovintage)
 - [Tim Galeckas](https://github.com/timgaleckas)
@@ -248,3 +259,7 @@ Thanks to these awesome peeps for their contributions:
 - [presskey](https://github.com/presskey)
 - [Stephen Bussey](https://github.com/sb8244)
 - [frobcode](https://github.com/frobcode)
+- [Petteri Räty](https://github.com/betelgeuse)
+- [Stefan Schüßler](https://github.com/sos4nt)
+- [Jonathan Calvert](https://github.com/jcalvert)
+
