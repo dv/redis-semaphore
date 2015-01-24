@@ -22,6 +22,10 @@ describe "redis" do
       expect(semaphore.available_count).to eq(1)
     end
 
+    it "has the correct amount of available resources before locking" do
+      expect(semaphore.available_count).to eq(1)
+    end
+
     it "should not exist from the start" do
       expect(semaphore.exists?).to eq(false)
       semaphore.lock
