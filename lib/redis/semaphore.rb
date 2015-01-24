@@ -43,7 +43,11 @@ class Redis
     end
 
     def available_count
-      @redis.llen(available_key)
+      if exists?
+        @redis.llen(available_key)
+      else
+        @resource_count
+      end
     end
 
     def delete!
