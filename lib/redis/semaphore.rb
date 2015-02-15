@@ -29,7 +29,7 @@ class Redis
     end
 
     def exists_or_create!
-      token = @redis.getset(exists_key, EXISTS_TOKEN)
+      token = @redis.get(exists_key)
 
       if token.nil?
         create!
@@ -160,7 +160,7 @@ class Redis
     end
 
     def create!
-      @redis.expire(exists_key, 10)
+      @redis.setex(exists_key, 10, EXISTS_TOKEN)
 
       @redis.multi do
         @redis.del(grabbed_key)
