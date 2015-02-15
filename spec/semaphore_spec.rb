@@ -228,7 +228,8 @@ describe "redis" do
     end
 
     it "without time support should return the same time as frozen time" do
-      expect(semaphore.instance_variable_get(:@redis)).to receive(:time).and_raise(Redis::CommandError)
+      expect(semaphore.instance_variable_get(:@redis)).to receive(:time)
+        .and_raise(Redis::CommandError)
       expect(semaphore.send(:current_time)).to eq(Time.now)
     end
   end
