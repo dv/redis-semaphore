@@ -19,8 +19,12 @@ class Redis
       @expiration = opts.delete(:expiration)
       @resource_count = opts.delete(:resources) || 1
       @stale_client_timeout = opts.delete(:stale_client_timeout)
-      @redis = opts.delete(:redis) || Redis.new(opts)
       @use_local_time = opts.delete(:use_local_time)
+      @redis = if @redis = opts.delete(:redis)
+                 @redis.dup
+               else
+                 Redis.new(opts)
+               end
       @tokens = []
     end
 
