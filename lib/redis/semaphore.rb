@@ -22,6 +22,7 @@ class Redis
       @redis = opts.delete(:redis) || Redis.new(opts)
       @use_local_time = opts.delete(:use_local_time)
       @tokens = []
+      @local_mutex = Mutex.new
     end
 
     def exists_or_create!
@@ -58,26 +59,28 @@ class Redis
     end
 
     def lock(timeout = 0)
-      exists_or_create!
-      release_stale_locks! if check_staleness?
+      @local_mutex.synchronize do
+        exists_or_create!
+        release_stale_locks! if check_staleness?
 
-      token_pair = @redis.blpop(available_key, timeout)
-      return false if token_pair.nil?
+        token_pair = @redis.blpop(available_key, timeout)
+        return false if token_pair.nil?
 
-      current_token = token_pair[1]
-      @tokens.push(current_token)
-      @redis.hset(grabbed_key, current_token, current_time.to_f)
-      return_value = current_token
+        current_token = token_pair[1]
+        @tokens.push(current_token)
+        @redis.hset(grabbed_key, current_token, current_time.to_f)
+        return_value = current_token
 
-      if block_given?
-        begin
-          return_value = yield current_token
-        ensure
-          signal(current_token)
+        if block_given?
+          begin
+            return_value = yield current_token
+          ensure
+            signal(current_token)
+          end
         end
-      end
 
-      return_value
+        return_value
+      end
     end
     alias_method :wait, :lock
 

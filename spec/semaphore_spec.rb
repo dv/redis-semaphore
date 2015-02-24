@@ -201,6 +201,10 @@ describe "redis" do
       Timecop.freeze(Time.local(1990))
     end
 
+    after(:all) do
+      Timecop.return
+    end
+
     it "with time support should return a different time than frozen time" do
       expect(semaphore.send(:current_time)).not_to eq(Time.now)
     end
@@ -247,4 +251,91 @@ describe "redis" do
     end
   end
 
+  describe "threaded behavior" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, redis: @redis) }
+
+    before { Thread.abort_on_exception = true }
+    after { Thread.abort_on_exception = false }
+
+    context "without semaphore" do
+      it "should allow simultaneous access by different threads" do
+        sequence = []
+
+        t1 = Thread.new do
+          sleep(0.1)
+          sequence.push(Time.now.to_f)
+          sleep(1)
+        end
+
+        t2 = Thread.new do
+          sleep(0.1)
+          sequence.push(Time.now.to_f)
+          sleep(1)
+        end
+
+        expect(sequence.length).to eq(0)
+        [t1, t2].each(&:join)
+        expect(sequence.length).to eq(2)
+        expect(sequence[1] - sequence[0]).to be < 0.01
+        [t1, t2].each(&:kill)
+      end
+    end
+
+    context "with ruby's mutex" do
+      it "should prevent simultaneous access by different threads" do
+        sequence = []
+        mutex = Mutex.new
+
+        t1 = Thread.new do
+          mutex.synchronize do
+            sleep(0.1)
+            sequence.push(Time.now.to_f)
+            sleep(1)
+          end
+        end
+
+        t2 = Thread.new do
+          mutex.synchronize do
+            sleep(0.1)
+            sequence.push(Time.now.to_f)
+            sleep(1)
+          end
+        end
+
+        expect(sequence.length).to eq(0)
+        [t1, t2].each(&:join)
+        expect(sequence.length).to eq(2)
+        expect(sequence[1] - sequence[0]).to be > 1
+        [t1, t2].each(&:kill)
+      end
+    end
+
+    context "with semaphore" do
+      it "should prevent simultaneous access by different threads" do
+        sequence = []
+
+        t1 = Thread.new do
+          semaphore.lock(1) do
+            sleep(0.1)
+            sequence.push(Time.now.to_f)
+            sleep(1)
+          end
+        end
+
+        t2 = Thread.new do
+          semaphore.lock(1) do
+            sleep(0.1)
+            sequence.push(Time.now.to_f)
+            sleep(1)
+          end
+        end
+
+        expect(sequence.length).to eq(0)
+        [t1, t2].each(&:join)
+        expect(sequence.length).to eq(2)
+        expect(sequence[1] - sequence[0]).to be > 1
+        [t1, t2].each(&:kill)
+      end
+    end
+  end
 end
