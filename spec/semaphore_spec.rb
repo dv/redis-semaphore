@@ -262,19 +262,21 @@ describe "redis" do
         sequence = []
 
         t1 = Thread.new do
+          sleep(0.01)
           sequence.push(Time.now.to_f)
-          sleep(1)
+          sleep(0.1)
         end
 
         t2 = Thread.new do
+          sleep(0.01)
           sequence.push(Time.now.to_f)
-          sleep(1)
+          sleep(0.1)
         end
 
         expect(sequence.length).to eq(0)
         [t1, t2].each(&:join)
         expect(sequence.length).to eq(2)
-        expect(sequence[1] - sequence[0]).to be < 0.1
+        expect(sequence[1] - sequence[0]).to be < 0.01
         [t1, t2].each(&:kill)
       end
     end
@@ -286,22 +288,24 @@ describe "redis" do
 
         t1 = Thread.new do
           mutex.synchronize do
+            sleep(0.01)
             sequence.push(Time.now.to_f)
-            sleep(1)
+            sleep(0.1)
           end
         end
 
         t2 = Thread.new do
           mutex.synchronize do
+            sleep(0.01)
             sequence.push(Time.now.to_f)
-            sleep(1)
+            sleep(0.1)
           end
         end
 
         expect(sequence.length).to eq(0)
         [t1, t2].each(&:join)
         expect(sequence.length).to eq(2)
-        expect(sequence[1] - sequence[0]).to be > 1
+        expect(sequence[1] - sequence[0]).to be > 0.1
         [t1, t2].each(&:kill)
       end
     end
@@ -312,22 +316,24 @@ describe "redis" do
 
         t1 = Thread.new do
           semaphore.lock do
+            sleep(0.01)
             sequence.push(Time.now.to_f)
-            sleep(1)
+            sleep(0.1)
           end
         end
 
         t2 = Thread.new do
           semaphore.lock do
+            sleep(0.01)
             sequence.push(Time.now.to_f)
-            sleep(1)
+            sleep(0.1)
           end
         end
 
         expect(sequence.length).to eq(0)
         [t1, t2].each(&:join)
         expect(sequence.length).to eq(2)
-        expect(sequence[1] - sequence[0]).to be > 1
+        expect(sequence[1] - sequence[0]).to be > 0.1
         [t1, t2].each(&:kill)
       end
     end
