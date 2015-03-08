@@ -139,6 +139,15 @@ describe "redis" do
       sleep 3.0
       expect(@redis.keys.count).to eq(original_key_size)
     end
+
+    it "expires keys after unlocking" do
+      original_key_size = @redis.keys.count
+      semaphore.lock do
+        # noop
+      end
+      sleep 3.0
+      expect(@redis.keys.count).to eq(original_key_size)
+    end
   end
 
   describe "semaphore without staleness checking" do
