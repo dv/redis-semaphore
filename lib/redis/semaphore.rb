@@ -37,7 +37,6 @@ class Redis
           @redis.set(version_key, API_VERSION)
         end
 
-        set_expiration_if_necessary
         true
       end
     end
@@ -104,6 +103,8 @@ class Redis
       @redis.multi do
         @redis.hdel grabbed_key, token
         @redis.lpush available_key, token
+
+        set_expiration_if_necessary
       end
     end
 
