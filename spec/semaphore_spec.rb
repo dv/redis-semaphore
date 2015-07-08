@@ -130,26 +130,12 @@ describe "redis" do
       did_we_get_in = false
 
       semaphore.lock do
-        Timeout::timeout(1) do
-          semaphore.lock(0) do
-            did_we_get_in = true
-          end
+        semaphore.lock(0) do
+          did_we_get_in = true
         end
       end
 
       expect(did_we_get_in).to be false
-    end
-
-    it "should block by default" do
-      expect {
-        semaphore.lock do
-          Timeout::timeout(1) do
-            semaphore.lock do
-              raise "You shouldn't be here!"
-            end
-          end
-        end
-      }.to raise_error(Timeout::Error)
     end
   end
 
