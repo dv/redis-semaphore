@@ -160,6 +160,31 @@ describe "redis" do
       sleep 3.0
       expect(@redis.keys.count).to eq(original_key_size)
     end
+
+    it "does not leave an exists key without an expiration when an expiration is specified" do
+      original_key_size = @redis.keys.count
+      queue = Queue.new
+      threads = 2.times.collect do
+        Thread.new do
+          Redis::Semaphore.new(:my_semaphore, :redis => @redis, :expiration => 3).lock(5) do
+            sleep 1
+          end
+        end
+      end
+      sleep 4.0
+      @redis2 = Redis.new :db => 15
+      threads.each{|t| t.kill } #ensure signal step fails
+      expect(@redis2.ttl("SEMAPHORE:my_semaphore:EXISTS").to_s).to_not eql("-1")
+      sleep 4.0 #allow blpop timeout to occur
+      thrd = Thread.new do
+        Redis::Semaphore.new(:my_semaphore, :redis => @redis2, :expiration => 3).lock(5) do
+          queue << "work"
+        end
+      end
+      thrd.join(3)
+      expect(queue.size).to eql(1)
+      expect(@redis.ttl("SEMAPHORE:my_semaphore:EXISTS").to_s).to_not eql("-1")
+    end
   end
 
   describe "semaphore without staleness checking" do
