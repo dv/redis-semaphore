@@ -93,9 +93,9 @@ describe "redis" do
     it "should not leave the semaphore locked after raising an exception" do
       expect {
         semaphore.lock(1) do
-          raise Exception
+          raise Exception, "redis semaphore exception"
         end
-      }.to raise_error
+      }.to raise_error(Exception, "redis semaphore exception")
 
       expect(semaphore.locked?).to eq(false)
     end
