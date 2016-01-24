@@ -56,11 +56,17 @@ class Redis
       @redis.del(version_key)
     end
 
-    def lock(timeout = 0)
+    def lock(timeout = nil)
       exists_or_create!
       release_stale_locks! if check_staleness?
 
-      token_pair = @redis.blpop(available_key, timeout)
+      if timeout.nil? || timeout > 0
+        # passing timeout 0 to blpop causes it to block
+        token_pair = @redis.blpop(available_key, timeout || 0)
+      else
+        token_pair = @redis.lpop(available_key)
+      end
+
       return false if token_pair.nil?
 
       current_token = token_pair[1]

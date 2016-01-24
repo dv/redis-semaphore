@@ -125,6 +125,18 @@ describe "redis" do
 
       expect(@redis.keys.count).to eq(original_key_size)
     end
+
+    it "should not block when the timeout is zero" do
+      did_we_get_in = false
+
+      semaphore.lock do
+        semaphore.lock(0) do
+          did_we_get_in = true
+        end
+      end
+
+      expect(did_we_get_in).to be false
+    end
   end
 
   describe "semaphore with expiration" do
