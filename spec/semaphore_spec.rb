@@ -125,6 +125,23 @@ describe "redis" do
 
       expect(@redis.keys.count).to eq(original_key_size)
     end
+
+    it "don't enters deadlock" do
+      i = 0
+      expect {
+        redis = @redis.dup
+        Timeout.timeout(2) do
+          Array.new(2).map do
+            Thread.new do
+              Redis::Semaphore.new(:sem, redis: redis).lock do
+                i += 1
+              end
+            end
+          end.each(&:join)
+        end
+      }.not_to raise_error
+      expect(i).to eq(2)
+    end
   end
 
   describe "semaphore with expiration" do
@@ -220,7 +237,8 @@ describe "redis" do
     end
 
     it "without time support should return the same time as frozen time" do
-      expect(@redis).to receive(:time).and_raise(Redis::CommandError)
+      expect(semaphore.instance_variable_get(:@redis)).to receive(:time)
+        .and_raise(Redis::CommandError)
       expect(semaphore.send(:current_time)).to eq(Time.now)
     end
   end

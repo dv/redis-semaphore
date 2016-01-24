@@ -19,13 +19,17 @@ class Redis
       @expiration = opts.delete(:expiration)
       @resource_count = opts.delete(:resources) || 1
       @stale_client_timeout = opts.delete(:stale_client_timeout)
-      @redis = opts.delete(:redis) || Redis.new(opts)
       @use_local_time = opts.delete(:use_local_time)
+      @redis = if @redis = opts.delete(:redis)
+                 @redis.dup
+               else
+                 Redis.new(opts)
+               end
       @tokens = []
     end
 
     def exists_or_create!
-      token = @redis.getset(exists_key, EXISTS_TOKEN)
+      token = @redis.get(exists_key)
 
       if token.nil?
         create!
@@ -89,11 +93,7 @@ class Redis
       if token
         @redis.hexists(grabbed_key, token)
       else
-        @tokens.each do |token|
-          return true if locked?(token)
-        end
-
-        false
+        @tokens.any? { |t| locked?(t) }
       end
     end
 
@@ -157,7 +157,7 @@ class Redis
     end
 
     def create!
-      @redis.expire(exists_key, 10)
+      @redis.setex(exists_key, 10, EXISTS_TOKEN)
 
       @redis.multi do
         @redis.del(grabbed_key)
