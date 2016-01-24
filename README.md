@@ -10,6 +10,23 @@ The mutex and semaphore is blocking, not polling, and has a fair queue serving p
 
 For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming)).
 
+Changes for 0.3.0
+=================
+
+If you've been using `redis-semaphore` before version `0.3.0` you should be aware that the interface for `lock` has changed slightly. Before `0.3` calling `semaphore.lock(0)` (with `0` as the timeout) would block the semaphore indefinitely, just like a redis `blpop` command would.
+
+This has changed in `0.3` to mean *do not block at all*. You can still omit the argument entirely, or pass in `nil` to get the old functionality back. Examples:
+
+```ruby
+# These block indefinitely until a resource becomes available:
+semaphore.lock
+semaphore.lock(nil)
+
+# This does not block at all and rather returns immediately if there's no
+# resource available:
+semaphore.lock(0)
+```
+
 Usage
 -----
 
@@ -200,6 +217,11 @@ Testing
 Changelog
 ---------
 
+###0.3.0 January 24, 2016
+- Change API to include non-blocking option for `#lock` (thanks tomclose!).
+- Fix unwanted persisting of `available_key` (thanks dany1468!).
+- Fix `available_count` returning 0 for nonexisting semaphores (thanks mikeryz!).
+
 ###0.2.4 January 11, 2015
 - Fix bug with TIME and redis-namespace (thanks sos4nt!).
 - Add expiration option (thanks jcalvert!).
@@ -267,4 +289,5 @@ Thanks to these awesome people for their contributions:
 - [Petteri Räty](https://github.com/betelgeuse)
 - [Stefan Schüßler](https://github.com/sos4nt)
 - [Jonathan Calvert](https://github.com/jcalvert)
-
+- [mikeryz](https://github.com/mikeryz)
+- [tomclose](https://github.com/tomclose)
