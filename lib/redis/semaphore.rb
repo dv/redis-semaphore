@@ -62,14 +62,13 @@ class Redis
 
       if timeout.nil? || timeout > 0
         # passing timeout 0 to blpop causes it to block
-        token_pair = @redis.blpop(available_key, timeout || 0)
+        _key, current_token = @redis.blpop(available_key, timeout || 0)
       else
-        token_pair = @redis.lpop(available_key)
+        current_token = @redis.lpop(available_key)
       end
 
-      return false if token_pair.nil?
+      return false if current_token.nil?
 
-      current_token = token_pair[1]
       @tokens.push(current_token)
       @redis.hset(grabbed_key, current_token, current_time.to_f)
       return_value = current_token

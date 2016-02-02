@@ -137,6 +137,12 @@ describe "redis" do
 
       expect(did_we_get_in).to be false
     end
+
+    it "should be locked when the timeout is zero" do
+      semaphore.lock(0) do
+        expect(semaphore.locked?).to be true
+      end
+    end
   end
 
   describe "semaphore with expiration" do
