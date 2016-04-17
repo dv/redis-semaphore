@@ -285,11 +285,12 @@ describe "redis" do
     it "gracefully expires stale lock" do
       expiration = 1
 
-      Thread.new do
-        semaphore.simple_expiring_mutex(:test, expiration) do
-          sleep 3
+      thread =
+        Thread.new do
+          semaphore.simple_expiring_mutex(:test, expiration) do
+            sleep 3
+          end
         end
-      end
 
       sleep 1.5
 
@@ -303,6 +304,7 @@ describe "redis" do
       end
 
       expect(it_worked).to be_truthy
+      thread.join
     end
   end
 end
