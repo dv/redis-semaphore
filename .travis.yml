@@ -8,3 +8,5 @@ rvm:
   - rbx
 services:
   - redis-server
+before_install:
+  - gem install bundler

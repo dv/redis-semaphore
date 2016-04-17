@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'redis-semaphore'
-  s.version     = '0.3.0'
+  s.version     = '0.3.1'
   s.summary     = 'Implements a distributed semaphore or mutex using Redis.'
   s.authors     = ['David Verhasselt']
   s.email       = 'david@crowdway.com'
@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.files       = files
 
   s.add_dependency 'redis'
-  s.add_development_dependency 'rake'
+  s.add_development_dependency 'rake', '< 11'
   s.add_development_dependency 'rspec', '>= 2.14'
   s.add_development_dependency 'timecop'
 
