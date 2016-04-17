@@ -219,8 +219,9 @@ Testing
 Changelog
 ---------
 
-###0.3.1 April 17, 2016
+###0.3.1 April 17, 2016 (Pending)
 - Fix `sem.lock(0)` bug (thanks eugenk!).
+- Fix `release_stale_locks!` deadlock bug (thanks mfischer-zd for the bug-report!).
 
 ###0.3.0 January 24, 2016
 - Change API to include non-blocking option for `#lock` (thanks tomclose!).

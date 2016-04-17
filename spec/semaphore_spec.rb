@@ -274,4 +274,35 @@ describe "redis" do
     end
   end
 
+  # Private method tests, do not use
+  describe "simple_expiring_mutex" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+
+    before do
+      semaphore.class.send(:public, :simple_expiring_mutex)
+    end
+
+    it "gracefully expires stale lock" do
+      expiration = 1
+
+      Thread.new do
+        semaphore.simple_expiring_mutex(:test, expiration) do
+          sleep 3
+        end
+      end
+
+      sleep 1.5
+
+      expect(semaphore.simple_expiring_mutex(:test, expiration)).to be_falsy
+
+      sleep expiration
+
+      it_worked = false
+      semaphore.simple_expiring_mutex(:test, expiration) do
+        it_worked = true
+      end
+
+      expect(it_worked).to be_truthy
+    end
+  end
 end

@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rake', '< 11'
   s.add_development_dependency 'rspec', '>= 2.14'
   s.add_development_dependency 'timecop'
+  s.add_development_dependency 'pry'
 
   s.description = <<description
 Implements a distributed semaphore or mutex using Redis.
