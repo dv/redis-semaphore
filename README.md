@@ -219,7 +219,7 @@ Testing
 Changelog
 ---------
 
-###0.3.1 April 17, 2016 (Pending)
+###0.3.1 April 17, 2016
 - Fix `sem.lock(0)` bug (thanks eugenk!).
 - Fix `release_stale_locks!` deadlock bug (thanks mfischer-zd for the bug-report!).
 
