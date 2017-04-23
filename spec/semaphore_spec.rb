@@ -43,6 +43,15 @@ describe "redis" do
       expect(semaphore.locked?).to eq(false)
     end
 
+    it "recognizes the lock state of another semaphore with the same key" do
+      semaphore.lock(1)
+      expect(semaphore.locked?).to eq(true)
+      expect(semaphore2.locked?).to eq(true)
+      semaphore.unlock
+      expect(semaphore.locked?).to eq(false)
+      expect(semaphore2.locked?).to eq(false)
+    end
+
     it "should not lock twice as a mutex" do
       expect(semaphore.lock(1)).not_to eq(false)
       expect(semaphore.lock(1)).to eq(false)
@@ -147,6 +156,7 @@ describe "redis" do
 
   describe "semaphore with expiration" do
     let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :expiration => 2) }
+    let(:semaphore2) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :expiration => 2) }
     let(:multisem) { Redis::Semaphore.new(:my_semaphore_2, :resources => 2, :redis => @redis, :expiration => 2) }
 
     it_behaves_like "a semaphore"
@@ -170,6 +180,7 @@ describe "redis" do
 
   describe "semaphore without staleness checking" do
     let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+    let(:semaphore2) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
     let(:multisem) { Redis::Semaphore.new(:my_semaphore_2, :resources => 2, :redis => @redis) }
 
     it_behaves_like "a semaphore"
@@ -208,6 +219,7 @@ describe "redis" do
 
   describe "semaphore with staleness checking" do
     let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5) }
+    let(:semaphore2) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5) }
     let(:multisem) { Redis::Semaphore.new(:my_semaphore_2, :resources => 2, :redis => @redis, :stale_client_timeout => 5) }
 
     it_behaves_like "a semaphore"
