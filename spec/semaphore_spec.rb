@@ -22,6 +22,10 @@ describe "redis" do
       expect(semaphore.available_count).to eq(1)
     end
 
+    it "has the correct amount of available resources before locking" do
+      expect(semaphore.available_count).to eq(1)
+    end
+
     it "should not exist from the start" do
       expect(semaphore.exists?).to eq(false)
       semaphore.lock
@@ -89,9 +93,9 @@ describe "redis" do
     it "should not leave the semaphore locked after raising an exception" do
       expect {
         semaphore.lock(1) do
-          raise Exception
+          raise Exception, "redis semaphore exception"
         end
-      }.to raise_error
+      }.to raise_error(Exception, "redis semaphore exception")
 
       expect(semaphore.locked?).to eq(false)
     end
@@ -112,6 +116,33 @@ describe "redis" do
       end
       expect(block_value).to eq(lock_token)
     end
+
+    it "should disappear without a trace when calling `delete!`" do
+      original_key_size = @redis.keys.count
+
+      semaphore.exists_or_create!
+      semaphore.delete!
+
+      expect(@redis.keys.count).to eq(original_key_size)
+    end
+
+    it "should not block when the timeout is zero" do
+      did_we_get_in = false
+
+      semaphore.lock do
+        semaphore.lock(0) do
+          did_we_get_in = true
+        end
+      end
+
+      expect(did_we_get_in).to be false
+    end
+
+    it "should be locked when the timeout is zero" do
+      semaphore.lock(0) do
+        expect(semaphore.locked?).to be true
+      end
+    end
   end
 
   describe "semaphore with expiration" do
@@ -123,6 +154,15 @@ describe "redis" do
     it "expires keys" do
       original_key_size = @redis.keys.count
       semaphore.exists_or_create!
+      sleep 3.0
+      expect(@redis.keys.count).to eq(original_key_size)
+    end
+
+    it "expires keys after unlocking" do
+      original_key_size = @redis.keys.count
+      semaphore.lock do
+        # noop
+      end
       sleep 3.0
       expect(@redis.keys.count).to eq(original_key_size)
     end
@@ -213,6 +253,58 @@ describe "redis" do
       grabbed_keys = semaphore.all_tokens
 
       expect(available_keys).to eq(grabbed_keys)
+    end
+  end
+
+  describe "version" do
+    context "with an existing versionless semaphore" do
+      let(:old_sem) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+      let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+      let(:version_key) { old_sem.send(:version_key) }
+
+      before do
+        old_sem.exists_or_create!
+        @redis.del(version_key)
+      end
+
+      it "sets the version key" do
+        semaphore.exists_or_create!
+        expect(@redis.get(version_key)).not_to be_nil
+      end
+    end
+  end
+
+  # Private method tests, do not use
+  describe "simple_expiring_mutex" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+
+    before do
+      semaphore.class.send(:public, :simple_expiring_mutex)
+    end
+
+    it "gracefully expires stale lock" do
+      expiration = 1
+
+      thread =
+        Thread.new do
+          semaphore.simple_expiring_mutex(:test, expiration) do
+            sleep 3
+          end
+        end
+
+      sleep 1.5
+
+      expect(semaphore.simple_expiring_mutex(:test, expiration)).to be_falsy
+
+      sleep expiration
+
+      it_worked = false
+      semaphore.simple_expiring_mutex(:test, expiration) do
+        it_worked = true
+      end
+
+      expect(it_worked).to be_truthy
+      thread.join
     end
   end
 end

@@ -1,4 +1,5 @@
-[![Code Climate](https://codeclimate.com/github/dv/redis-semaphore.png)](https://codeclimate.com/github/dv/redis-semaphore)
+[![Code Climate](https://codeclimate.com/github/dv/redis-semaphore.svg?branch=master)](https://codeclimate.com/github/dv/redis-semaphore)
+[![Build Status](https://travis-ci.org/dv/redis-semaphore.svg?branch=master)](https://travis-ci.org/dv/redis-semaphore)
 
 redis-semaphore
 ===============
@@ -7,7 +8,24 @@ Implements a mutex and semaphore using Redis and the neat BLPOP command.
 
 The mutex and semaphore is blocking, not polling, and has a fair queue serving processes on a first-come, first-serve basis. It can also have an optional timeout after which a lock is unlocked automatically, to protect against dead clients.
 
-For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming\)).
+For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming)).
+
+Important change in v0.3.0
+===========================
+
+If you've been using `redis-semaphore` before version `0.3.0` you should be aware that the interface for `lock` has changed slightly. Before `0.3` calling `semaphore.lock(0)` (with `0` as the timeout) would block the semaphore indefinitely, just like a redis `blpop` command would.
+
+This has changed in `0.3` to mean *do not block at all*. You can still omit the argument entirely, or pass in `nil` to get the old functionality back. Examples:
+
+```ruby
+# These block indefinitely until a resource becomes available:
+semaphore.lock
+semaphore.lock(nil)
+
+# This does not block at all and rather returns immediately if there's no
+# resource available:
+semaphore.lock(0)
+```
 
 Usage
 -----
@@ -15,7 +33,7 @@ Usage
 Create a mutex:
 
 ```ruby
-s = Redis::Semaphore.new(:semaphore_name, :connection => "localhost")
+s = Redis::Semaphore.new(:semaphore_name, :host => "localhost")
 s.lock do
   # We're now in a mutex protected area
   # No matter how many processes are running this program,
@@ -29,7 +47,7 @@ While our application is inside the code block given to ```s.lock```, other call
 You can also allow a set number of processes inside the semaphore-protected block, in case you have a well-defined number of resources available:
 
 ```ruby
-s = Redis::Semaphore.new(:semaphore_name, :resources => 5, :connection => "localhost")
+s = Redis::Semaphore.new(:semaphore_name, :resources => 5, :host => "localhost")
 s.lock do
   # Up to five processes at a time will be able to get inside this code
   # block simultaneously.
@@ -40,7 +58,7 @@ end
 You're not obligated to use code blocks, linear calls work just fine:
 
 ```ruby
-s = Redis::Semaphore.new(:semaphore_name, :connection => "localhost")
+s = Redis::Semaphore.new(:semaphore_name, :host => "localhost")
 s.lock
 work
 s.unlock  # Don't forget this, or the mutex will stay locked!
@@ -75,10 +93,12 @@ sem.available_count # also returns 1
 In the constructor you can pass in any arguments that you would pass to a regular Redis constructor. You can even pass in your custom Redis client:
 
 ```ruby
-r = Redis.new(:connection => "localhost", :db => 222)
+r = Redis.new(:host => "localhost", :db => 222)
 s = Redis::Semaphore.new(:another_name, :redis => r)
 #...
 ```
+
+Note that it's [a bad idea to reuse the same redis client across threads](https://github.com/dv/redis-semaphore/issues/18), due to the blocking nature of the `blpop` command. We might add support for this in a future version.
 
 If an exception happens during a lock, the lock will automatically be released:
 
@@ -107,10 +127,10 @@ s = Redis::Semaphore.new(:stale_semaphore, :redis = r, :stale_client_timeout => 
 Or you could start a different thread or program that frequently checks for stale locks. This has the advantage of unblocking blocking calls to Semaphore#lock as well:
 
 ```ruby
-normal_sem = Redis::Semaphore.new(:semaphore, :connection => "localhost")
+normal_sem = Redis::Semaphore.new(:semaphore, :host => "localhost")
 
 Thread.new do
-  watchdog = Redis::Semaphore.new(:semaphore, :connection => "localhost", :stale_client_timeout => 5)
+  watchdog = Redis::Semaphore.new(:semaphore, :host => "localhost", :stale_client_timeout => 5)
 
   while(true) do
     watchdog.release_stale_locks!
@@ -175,6 +195,16 @@ s = Redis::Semaphore.new(:local_semaphore, :redis = r, :stale_client_timeout => 
 Redis servers earlier than version 2.6 don't support the TIME command. In that case we fall back to using the local time automatically.
 
 
+### Expiration
+
+```redis-semaphore``` supports an expiration option, which will call the **EXPIRE** Redis command on all related keys (except for `grabbed_keys`), to make sure that after a while all evidence of the semaphore will disappear and your Redis server will not be cluttered with unused keys. Pass in the expiration timeout in seconds:
+
+```ruby
+s = Redis::Semaphore.new(:local_semaphore, :redis = r, :expiration => 100)
+```
+
+This option should only be used if you know what you're doing. If you chose a wrong expiration timeout then the semaphore might disappear in the middle of a critical section. For most situations just using the `delete!` command should suffice to remove all semaphore keys from the server after you're done using the semaphore.
+
 Installation
 ------------
 
@@ -189,55 +219,26 @@ Testing
 Changelog
 ---------
 
-###0.2.3 September 7, 2014
-- Block-based locking return the value of the block (thanks frobcode!).
+###0.3.1 April 17, 2016
+- Fix `sem.lock(0)` bug (thanks eugenk!).
+- Fix `release_stale_locks!` deadlock bug (thanks mfischer-zd for the bug-report!).
 
-###0.2.2 June 16, 2014
-- Fixed bug in `all_tokens` (thanks presskey!).
-- Fixed bug in error message (thanks Dmitriy!).
+###0.3.0 January 24, 2016
+- Change API to include non-blocking option for `#lock` (thanks tomclose!).
+- Fix unwanted persisting of `available_key` (thanks dany1468!).
+- Fix `available_count` returning 0 for nonexisting semaphores (thanks mikeryz!).
 
-###0.2.1 August 6, 2013
-- Remove dependency on Redis 2.6+ using fallback for TIME command (thanks dubdromic!).
-- Add ```:use_local_time``` option
+###0.2.4 January 11, 2015
+- Fix bug with TIME and redis-namespace (thanks sos4nt!).
+- Add expiration option (thanks jcalvert!).
+- Update API version logic.
 
-###0.2.0 June 2, 2013
-- Use Redis TIME command for lock timeouts (thanks dubdromic!).
-- Version increase because of new dependency on Redis 2.6+
-
-###0.1.7 April 18, 2013
-- Fix bug where ```release_stale_locks!``` was not public (thanks scomma!).
-
-###0.1.6 March 31, 2013
-- Add non-ownership of tokens
-- Add stale client timeout (thanks timgaleckas!).
-
-###0.1.5 October 1, 2012
-- Add detection of Redis::Namespace definition to avoid potential bug (thanks ruud!).
-
-###0.1.4 October 1, 2012
-- Fixed empty namespaces (thanks ruurd!).
-
-###0.1.3 July 9, 2012
-- Tokens are now identifiable (thanks timgaleckas!).
-
-###0.1.2 June 1, 2012
-- Add redis-namespace support (thanks neovintage!).
-
-### 0.1.1 September 17, 2011
-- When an exception is raised during locked period, ensure it unlocks.
-
-### 0.1.0 August 4, 2011
-- Initial release.
-
-Author
-------
-
-[David Verhasselt](http://davidverhasselt.com) - david@crowdway.com
+More in [CHANGELOG](CHANGELOG.md).
 
 Contributors
 ------------
 
-Thanks to these awesome peeps for their contributions:
+Thanks to these awesome people for their contributions:
 
 - [Rimas Silkaitis](https://github.com/neovintage)
 - [Tim Galeckas](https://github.com/timgaleckas)
@@ -248,3 +249,14 @@ Thanks to these awesome peeps for their contributions:
 - [presskey](https://github.com/presskey)
 - [Stephen Bussey](https://github.com/sb8244)
 - [frobcode](https://github.com/frobcode)
+- [Petteri Räty](https://github.com/betelgeuse)
+- [Stefan Schüßler](https://github.com/sos4nt)
+- [Jonathan Calvert](https://github.com/jcalvert)
+- [mikeryz](https://github.com/mikeryz)
+- [tomclose](https://github.com/tomclose)
+- [Eugen Kuksa](https://github.com/eugenk)
+- [Eugene Kenny](https://github.com/eugeneius)
+
+### "Merge"-button clicker
+
+[David Verhasselt](http://davidverhasselt.com) - david@crowdway.com
