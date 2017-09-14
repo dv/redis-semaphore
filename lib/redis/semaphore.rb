@@ -7,7 +7,7 @@ class Redis
 
     # stale_client_timeout is the threshold of time before we assume
     # that something has gone terribly wrong with a client and we
-    # invalidate it's lock.
+    # invalidate its lock.
     # Default is nil for which we don't check for stale clients
     # Redis::Semaphore.new(:my_semaphore, :stale_client_timeout => 30, :redis => myRedis)
     # Redis::Semaphore.new(:my_semaphore, :redis => myRedis)
