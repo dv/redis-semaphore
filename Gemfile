@@ -1,9 +1,3 @@
-source :rubygems
+source 'https://rubygems.org'
 
-group :test do
-  gem 'redis'
-  gem 'rspec'
-  gem 'rake'
-  gem 'pry'
-  gem 'timecop'
-end
+gemspec
