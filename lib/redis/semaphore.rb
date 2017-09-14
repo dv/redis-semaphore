@@ -81,6 +81,7 @@ class Redis
         end
       end
 
+      set_expiration_if_necessary
       return_value
     end
     alias_method :wait, :lock
@@ -199,7 +200,7 @@ class Redis
 
     def set_expiration_if_necessary
       if @expiration
-        [available_key, exists_key, version_key, stale_client_timeout.nil?? grabbed_key : nil ].each do |key|
+        [available_key, exists_key, version_key, @stale_client_timeout.nil?? grabbed_key : nil ].each do |key|
           @redis.expire(key, @expiration)
         end
       end
