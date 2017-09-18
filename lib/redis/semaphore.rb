@@ -7,7 +7,7 @@ class Redis
 
     # stale_client_timeout is the threshold of time before we assume
     # that something has gone terribly wrong with a client and we
-    # invalidate it's lock.
+    # invalidate its lock.
     # Default is nil for which we don't check for stale clients
     # Redis::Semaphore.new(:my_semaphore, :stale_client_timeout => 30, :redis => myRedis)
     # Redis::Semaphore.new(:my_semaphore, :redis => myRedis)
@@ -81,6 +81,7 @@ class Redis
         end
       end
 
+      set_expiration_if_necessary
       return_value
     end
     alias_method :wait, :lock
@@ -199,7 +200,7 @@ class Redis
 
     def set_expiration_if_necessary
       if @expiration
-        [available_key, exists_key, version_key].each do |key|
+        [available_key, exists_key, version_key, @stale_client_timeout.nil?? grabbed_key : nil ].each do |key|
           @redis.expire(key, @expiration)
         end
       end
