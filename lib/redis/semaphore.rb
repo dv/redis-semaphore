@@ -77,7 +77,7 @@ class Redis
         begin
           return_value = yield current_token
         ensure
-          signal(current_token)
+          signal(current_token) if locked?(current_token)
         end
       end
 

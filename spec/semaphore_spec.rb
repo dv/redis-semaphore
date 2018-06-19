@@ -219,6 +219,21 @@ describe "redis" do
       expect(hyper_aggressive_sem.lock(1)).to eq(false)
       expect(hyper_aggressive_sem.lock(1)).not_to eq(false)
     end
+
+    it "should not add extra resources from stale clients" do
+      hyper_aggressive_sem = Redis::Semaphore.new(
+        :my_semaphore_2,
+        redis: @redis,
+        stale_client_timeout: 0.1
+      )
+
+      expect do
+        multisem.lock do
+          sleep 0.1
+          hyper_aggressive_sem.release_stale_locks!
+        end
+      end.not_to change(multisem, :available_count)
+    end
   end
 
   describe "redis time" do
