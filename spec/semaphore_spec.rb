@@ -206,6 +206,22 @@ describe "redis" do
     end
   end
 
+  describe "semaphore took too long and was evicted" do
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+    it "does not re-add it's availability key if that job is completed" do
+      watchdog = Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 1)
+      semaphore.lock do
+        sleep 1.1
+        watchdog.release_stale_locks!
+      end
+
+      watchdog.release_stale_locks!
+      semaphore.unlock
+
+      expect(semaphore.available_count).to eq(1)
+    end
+  end
+
   describe "semaphore with staleness checking" do
     let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 5) }
     let(:multisem) { Redis::Semaphore.new(:my_semaphore_2, :resources => 2, :redis => @redis, :stale_client_timeout => 5) }

@@ -73,7 +73,6 @@ class Redis
       acquired_lock_at = current_time.to_f
       @redis.hset(grabbed_key, current_token, acquired_lock_at)
       return_value = current_token
-
       if block_given?
         begin
           return_value = yield current_token
@@ -108,9 +107,9 @@ class Redis
     def signal(token = 1)
       token ||= generate_unique_token
 
-      @redis.multi do
-        @redis.hdel grabbed_key, token
-        @redis.lpush available_key, token
+      @redis.multi do |multi|
+        multi.hdel grabbed_key, token
+        multi.lpush available_key, token
 
         set_expiration_if_necessary
       end
@@ -121,9 +120,9 @@ class Redis
     end
 
     def all_tokens
-      @redis.multi do
-        @redis.lrange(available_key, 0, -1)
-        @redis.hkeys(grabbed_key)
+      @redis.multi do |multi|
+        multi.lrange(available_key, 0, -1)
+        multi.hkeys(grabbed_key)
       end.flatten
     end
 
@@ -187,14 +186,14 @@ class Redis
     def create!
       @redis.expire(exists_key, 10)
 
-      @redis.multi do
-        @redis.del(grabbed_key)
-        @redis.del(available_key)
+      @redis.multi do |multi|
+        multi.del(grabbed_key)
+        multi.del(available_key)
         @resource_count.times do |index|
-          @redis.rpush(available_key, index)
+          multi.rpush(available_key, index)
         end
-        @redis.set(version_key, API_VERSION)
-        @redis.persist(exists_key)
+        multi.set(version_key, API_VERSION)
+        multi.persist(exists_key)
 
         set_expiration_if_necessary
       end
