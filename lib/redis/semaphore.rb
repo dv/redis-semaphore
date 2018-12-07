@@ -70,14 +70,17 @@ class Redis
       return false if current_token.nil?
 
       @tokens.push(current_token)
-      @redis.hset(grabbed_key, current_token, current_time.to_f)
+      acquired_lock_at = current_time.to_f
+      @redis.hset(grabbed_key, current_token, acquired_lock_at)
       return_value = current_token
 
       if block_given?
         begin
           return_value = yield current_token
         ensure
-          signal(current_token)
+          if @redis.hget(grabbed_key, current_token).to_f == acquired_lock_at
+            signal(current_token)
+          end
         end
       end
 
