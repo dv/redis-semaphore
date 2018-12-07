@@ -207,9 +207,13 @@ describe "redis" do
   end
 
   describe "semaphore took too long and was evicted" do
-    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, :redis => @redis) }
+    let(:semaphore) { Redis::Semaphore.new(:my_semaphore, redis: @redis) }
     it "does not re-add it's availability key if that job is completed" do
-      watchdog = Redis::Semaphore.new(:my_semaphore, :redis => @redis, :stale_client_timeout => 1)
+      watchdog = Redis::Semaphore.new(
+        :my_semaphore,
+        redis: @redis,
+        stale_client_timeout: 1
+      )
       semaphore.lock do
         sleep 1.1
         watchdog.release_stale_locks!
