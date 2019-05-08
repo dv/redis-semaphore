@@ -5,6 +5,8 @@ class Redis
     EXISTS_TOKEN = "1"
     API_VERSION = "1"
 
+    class Timeout < StandardError; end
+
     # stale_client_timeout is the threshold of time before we assume
     # that something has gone terribly wrong with a client and we
     # invalidate it's lock.
@@ -56,7 +58,7 @@ class Redis
       @redis.del(version_key)
     end
 
-    def lock(timeout = nil)
+    def lock(timeout = nil, raise_on_timeout: false)
       exists_or_create!
       release_stale_locks! if check_staleness?
 
@@ -67,7 +69,11 @@ class Redis
         current_token = @redis.lpop(available_key)
       end
 
-      return false if current_token.nil?
+      if current_token.nil?
+        raise Timeout, "Could not acquire lock on semaphonre #{@name} within #{timeout} seconds" if raise_on_timeout
+
+        return false
+      end
 
       @tokens.push(current_token)
       @redis.hset(grabbed_key, current_token, current_time.to_f)
@@ -244,7 +250,7 @@ class Redis
         begin
           instant = redis_namespace? ? @redis.redis.time : @redis.time
           Time.at(instant[0], instant[1])
-        rescue
+        rescue StandardError
           @use_local_time = true
           current_time
         end
