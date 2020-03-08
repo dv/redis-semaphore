@@ -143,6 +143,19 @@ describe "redis" do
         expect(semaphore.locked?).to be true
       end
     end
+
+    it "should recover after being killed after lpop of AVAILABLE" do
+      semaphore.lock
+      semaphore.unlock
+
+      expect(semaphore.available_count). to eq(1)
+
+      @redis.lpop(semaphore.send(:available_key))
+
+      semaphore.lock(-1)
+
+      expect(semaphore.locked?).to be true
+    end
   end
 
   describe "semaphore with expiration" do

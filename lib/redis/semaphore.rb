@@ -27,7 +27,7 @@ class Redis
     def exists_or_create!
       token = @redis.getset(exists_key, EXISTS_TOKEN)
 
-      if token.nil?
+      if token.nil? || all_tokens.empty?
         create!
       else
         # Previous versions of redis-semaphore did not set `version_key`.
