@@ -201,7 +201,7 @@ class Redis
 
     def set_expiration_if_necessary
       if @expiration
-        [available_key, exists_key, version_key].each do |key|
+        [exists_key, available_key, version_key].each do |key|
           @redis.expire(key, @expiration)
         end
       end
