@@ -8,6 +8,7 @@ describe "redis" do
 
   before(:each) do
     @redis.flushdb
+    stub_const("Redis::Semaphore::EXPIRATION_DELAY", 0)
   end
 
   after(:all) do

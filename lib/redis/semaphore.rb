@@ -5,6 +5,8 @@ class Redis
     EXISTS_TOKEN = "1"
     API_VERSION = "1"
 
+    EXPIRATION_DELAY = 10
+
     # stale_client_timeout is the threshold of time before we assume
     # that something has gone terribly wrong with a client and we
     # invalidate it's lock.
@@ -201,8 +203,13 @@ class Redis
 
     def set_expiration_if_necessary
       if @expiration
-        [exists_key, available_key, version_key].each do |key|
-          @redis.expire(key, @expiration)
+        @redis.expire(exists_key, @expiration)
+
+        # add 10 seconds to avoid race condition that existing available_key expires right
+        # after new client checks existence of exists_key, leaving that new client without
+        # any resources to ever grab
+        [available_key, version_key].each do |key|
+          @redis.expire(key, @expiration + EXPIRATION_DELAY)
         end
       end
     end
