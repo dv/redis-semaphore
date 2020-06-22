@@ -108,7 +108,7 @@ class Redis
     end
 
     def exists?
-      @redis.exists(exists_key)
+      @redis.exists?(exists_key)
     end
 
     def all_tokens
