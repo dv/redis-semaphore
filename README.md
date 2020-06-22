@@ -10,6 +10,23 @@ The mutex and semaphore is blocking, not polling, and has a fair queue serving p
 
 For more info see [Wikipedia](http://en.wikipedia.org/wiki/Semaphore_(programming)).
 
+Important change in v0.3.0
+===========================
+
+If you've been using `redis-semaphore` before version `0.3.0` you should be aware that the interface for `lock` has changed slightly. Before `0.3` calling `semaphore.lock(0)` (with `0` as the timeout) would block the semaphore indefinitely, just like a redis `blpop` command would.
+
+This has changed in `0.3` to mean *do not block at all*. You can still omit the argument entirely, or pass in `nil` to get the old functionality back. Examples:
+
+```ruby
+# These block indefinitely until a resource becomes available:
+semaphore.lock
+semaphore.lock(nil)
+
+# This does not block at all and rather returns immediately if there's no
+# resource available:
+semaphore.lock(0)
+```
+
 Usage
 -----
 
@@ -80,6 +97,8 @@ r = Redis.new(:host => "localhost", :db => 222)
 s = Redis::Semaphore.new(:another_name, :redis => r)
 #...
 ```
+
+Note that it's [a bad idea to reuse the same redis client across threads](https://github.com/dv/redis-semaphore/issues/18), due to the blocking nature of the `blpop` command. We might add support for this in a future version.
 
 If an exception happens during a lock, the lock will automatically be released:
 
@@ -200,55 +219,21 @@ Testing
 Changelog
 ---------
 
+###0.3.1 April 17, 2016
+- Fix `sem.lock(0)` bug (thanks eugenk!).
+- Fix `release_stale_locks!` deadlock bug (thanks mfischer-zd for the bug-report!).
+
+###0.3.0 January 24, 2016
+- Change API to include non-blocking option for `#lock` (thanks tomclose!).
+- Fix unwanted persisting of `available_key` (thanks dany1468!).
+- Fix `available_count` returning 0 for nonexisting semaphores (thanks mikeryz!).
+
 ###0.2.4 January 11, 2015
 - Fix bug with TIME and redis-namespace (thanks sos4nt!).
 - Add expiration option (thanks jcalvert!).
 - Update API version logic.
 
-###0.2.3 September 7, 2014
-- Block-based locking return the value of the block (thanks frobcode!).
-
-###0.2.2 June 16, 2014
-- Fixed bug in `all_tokens` (thanks presskey!).
-- Fixed bug in error message (thanks Dmitriy!).
-
-###0.2.1 August 6, 2013
-- Remove dependency on Redis 2.6+ using fallback for TIME command (thanks dubdromic!).
-- Add ```:use_local_time``` option
-
-###0.2.0 June 2, 2013
-- Use Redis TIME command for lock timeouts (thanks dubdromic!).
-- Version increase because of new dependency on Redis 2.6+
-
-###0.1.7 April 18, 2013
-- Fix bug where ```release_stale_locks!``` was not public (thanks scomma!).
-
-###0.1.6 March 31, 2013
-- Add non-ownership of tokens
-- Add stale client timeout (thanks timgaleckas!).
-
-###0.1.5 October 1, 2012
-- Add detection of Redis::Namespace definition to avoid potential bug (thanks ruud!).
-
-###0.1.4 October 1, 2012
-- Fixed empty namespaces (thanks ruurd!).
-
-###0.1.3 July 9, 2012
-- Tokens are now identifiable (thanks timgaleckas!).
-
-###0.1.2 June 1, 2012
-- Add redis-namespace support (thanks neovintage!).
-
-### 0.1.1 September 17, 2011
-- When an exception is raised during locked period, ensure it unlocks.
-
-### 0.1.0 August 4, 2011
-- Initial release.
-
-Author
-------
-
-[David Verhasselt](http://davidverhasselt.com) - david@crowdway.com
+More in [CHANGELOG](CHANGELOG.md).
 
 Contributors
 ------------
@@ -267,4 +252,11 @@ Thanks to these awesome people for their contributions:
 - [Petteri Räty](https://github.com/betelgeuse)
 - [Stefan Schüßler](https://github.com/sos4nt)
 - [Jonathan Calvert](https://github.com/jcalvert)
+- [mikeryz](https://github.com/mikeryz)
+- [tomclose](https://github.com/tomclose)
+- [Eugen Kuksa](https://github.com/eugenk)
+- [Eugene Kenny](https://github.com/eugeneius)
 
+### "Merge"-button clicker
+
+[David Verhasselt](http://davidverhasselt.com) - david@crowdway.com
