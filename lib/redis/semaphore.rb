@@ -37,7 +37,6 @@ class Redis
           @redis.set(version_key, API_VERSION)
         end
 
-        set_expiration_if_necessary
         true
       end
     end
@@ -57,14 +56,19 @@ class Redis
       @redis.del(version_key)
     end
 
-    def lock(timeout = 0)
+    def lock(timeout = nil)
       exists_or_create!
       release_stale_locks! if check_staleness?
 
-      token_pair = @redis.blpop(available_key, timeout)
-      return false if token_pair.nil?
+      if timeout.nil? || timeout > 0
+        # passing timeout 0 to blpop causes it to block
+        _key, current_token = @redis.blpop(available_key, timeout || 0)
+      else
+        current_token = @redis.lpop(available_key)
+      end
 
-      current_token = token_pair[1]
+      return false if current_token.nil?
+
       @tokens.push(current_token)
       @redis.hset(grabbed_key, current_token, current_time.to_f)
       return_value = current_token
@@ -104,6 +108,8 @@ class Redis
       @redis.multi do
         @redis.hdel grabbed_key, token
         @redis.lpush available_key, token
+
+        set_expiration_if_necessary
       end
     end
 
@@ -128,7 +134,7 @@ class Redis
     end
 
     def release_stale_locks!
-      simple_mutex(:release_locks, 10) do
+      simple_expiring_mutex(:release_locks, 10) do
         @redis.hgetall(grabbed_key).each do |token, locked_at|
           timed_out_at = locked_at.to_f + @stale_client_timeout
 
@@ -141,17 +147,37 @@ class Redis
 
   private
 
-    def simple_mutex(key_name, expires = nil)
-      key_name = namespaced_key(key_name) if key_name.kind_of? Symbol
-      token = @redis.getset(key_name, API_VERSION)
+    def simple_expiring_mutex(key_name, expires_in)
+      # Using the locking mechanism as described in
+      # http://redis.io/commands/setnx
 
-      return false unless token.nil?
-      @redis.expire(key_name, expires) unless expires.nil?
+      key_name = namespaced_key(key_name)
+      cached_current_time = current_time.to_f
+      my_lock_expires_at = cached_current_time + expires_in + 1
+
+      got_lock = @redis.setnx(key_name, my_lock_expires_at)
+
+      if !got_lock
+        # Check if expired
+        other_lock_expires_at = @redis.get(key_name).to_f
+
+        if other_lock_expires_at < cached_current_time
+          old_expires_at = @redis.getset(key_name, my_lock_expires_at).to_f
+
+          # Check if another client started cleanup yet. If not,
+          # then we now have the lock.
+          got_lock = (old_expires_at == other_lock_expires_at)
+        end
+      end
+
+      return false if !got_lock
 
       begin
-        yield token
+        yield
       ensure
-        @redis.del(key_name)
+        # Make sure not to delete the lock in case someone else already expired
+        # our lock, with one second in between to account for some lag.
+        @redis.del(key_name) if my_lock_expires_at > (current_time.to_f - 1)
       end
     end
 
