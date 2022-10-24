@@ -62,7 +62,7 @@ class Redis
 
       if timeout.nil? || timeout > 0
         # passing timeout 0 to blpop causes it to block
-        _key, current_token = @redis.blpop(available_key, timeout || 0)
+        _key, current_token = @redis.blpop(available_key, timeout: timeout || 0)
       else
         current_token = @redis.lpop(available_key)
       end
