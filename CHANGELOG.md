@@ -1,5 +1,8 @@
 Changelog
 ---------
+### 0.3.2 February 15, 2022
+- Use `redis.exists?` instead of `redis.exists`.
+- Fix deprecated calling commands on `Redis` inside `Redis #pipelined`.
 
 ### 0.3.1 April 17, 2016
 - Fix `sem.lock(0)` bug (thanks eugenk!).

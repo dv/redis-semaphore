@@ -105,22 +105,22 @@ class Redis
     def signal(token = 1)
       token ||= generate_unique_token
 
-      @redis.multi do
-        @redis.hdel grabbed_key, token
-        @redis.lpush available_key, token
+      @redis.multi do |transaction|
+        transaction.hdel grabbed_key, token
+        transaction.lpush available_key, token
 
-        set_expiration_if_necessary
+        set_expiration_if_necessary(transaction)
       end
     end
 
     def exists?
-      @redis.exists(exists_key)
+      @redis.exists?(exists_key)
     end
 
     def all_tokens
-      @redis.multi do
-        @redis.lrange(available_key, 0, -1)
-        @redis.hkeys(grabbed_key)
+      @redis.multi do |transaction|
+        transaction.lrange(available_key, 0, -1)
+        transaction.hkeys(grabbed_key)
       end.flatten
     end
 
@@ -184,23 +184,23 @@ class Redis
     def create!
       @redis.expire(exists_key, 10)
 
-      @redis.multi do
-        @redis.del(grabbed_key)
-        @redis.del(available_key)
+      @redis.multi do |transaction|
+        transaction.del(grabbed_key)
+        transaction.del(available_key)
         @resource_count.times do |index|
-          @redis.rpush(available_key, index)
+          transaction.rpush(available_key, index)
         end
-        @redis.set(version_key, API_VERSION)
-        @redis.persist(exists_key)
+        transaction.set(version_key, API_VERSION)
+        transaction.persist(exists_key)
 
-        set_expiration_if_necessary
+        set_expiration_if_necessary(transaction)
       end
     end
 
-    def set_expiration_if_necessary
+    def set_expiration_if_necessary(transaction)
       if @expiration
         [available_key, exists_key, version_key].each do |key|
-          @redis.expire(key, @expiration)
+          transaction.expire(key, @expiration)
         end
       end
     end
